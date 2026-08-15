@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="EWH E LK Q2">
+<meta name="theme-color" content="#14212e">
+<title>Written Exam No. 1 – Gender & Identity — Punkte</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='38' fill='%2314212e'/><text x='90' y='118' font-size='84' font-family='monospace' fill='%23fff' text-anchor='middle'>EWH</text></svg>">
+<style>
+:root{
+  --ink:#14212e; --soft:#5a6b7c; --paper:#e9edf1; --card:#fff; --line:#d3dae2;
+  --mark:#1d4ed8; --ok:#4d7c0f; --warn:#b45309; --nb:#98a4b0;
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+  -webkit-text-size-adjust:100%;padding-bottom:env(safe-area-inset-bottom)}
+button,input,textarea{font:inherit;color:inherit}
+.wrap{max-width:680px;margin:0 auto;padding:0 14px 90px}
+h1{font-size:20px;line-height:1.25;letter-spacing:-.01em;margin:0;font-weight:640}
+h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--soft);
+  margin:26px 0 10px;font-weight:620}
+h3{font-size:15px;margin:20px 0 10px;font-weight:620}
+.muted{color:var(--soft);font-size:13px;line-height:1.5}
+
+/* ---------- Kopf ---------- */
+.top{position:sticky;top:0;z-index:20;background:var(--paper);
+  padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;border-bottom:1px solid var(--line)}
+.top-in{max-width:680px;margin:0 auto}
+.crumbs{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.exam{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
+.score{display:flex;align-items:baseline;gap:8px;margin-top:8px}
+.score .pts{font-family:var(--mono);font-size:27px;font-weight:640;line-height:1}
+.score .of{font-family:var(--mono);font-size:13px;color:var(--soft)}
+.badge{margin-left:auto;display:inline-flex;align-items:baseline;gap:7px;
+  background:var(--ink);color:#fff;border-radius:8px;padding:6px 11px}
+.badge b{font-size:15px}
+.badge span{font-family:var(--mono);font-size:12px;opacity:.85}
+.bar{height:4px;background:var(--line);border-radius:2px;margin-top:9px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--mark);width:0;transition:width .18s ease}
+
+/* ---------- Karten ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:14px;margin-bottom:12px}
+.crit{padding:14px 0;border-top:1px solid var(--line)}
+.crit:first-child{border-top:0;padding-top:2px}
+.crit.off{opacity:.4}
+.chead{display:flex;gap:10px;align-items:flex-start;margin-bottom:9px}
+.cnr{font-family:var(--mono);font-size:12px;color:var(--soft);flex:none;padding-top:2px;min-width:20px}
+.ctext{flex:1;font-size:15px;line-height:1.4}
+.cmax{font-family:var(--mono);font-size:12px;color:var(--soft);flex:none;padding-top:2px}
+.more{background:none;border:0;color:var(--mark);font-size:13px;padding:6px 0 0;cursor:pointer}
+.long{margin:9px 0 0;padding:11px 12px;background:var(--paper);border-radius:9px;
+  font-size:14px;line-height:1.5}
+.long p{margin:0 0 8px}
+.long ul{margin:0;padding-left:19px}
+.long li{margin-bottom:5px}
+.taps{display:flex;gap:6px;flex-wrap:wrap}
+.tap{font-family:var(--mono);font-size:16px;min-width:44px;height:44px;
+  border:1px solid var(--line);background:var(--card);border-radius:9px;cursor:pointer}
+.tap[aria-pressed="true"]{background:var(--mark);border-color:var(--mark);color:#fff;font-weight:640}
+
+/* ---------- Wahlaufgabe ---------- */
+.seg{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.seg button{flex:1;min-width:140px;padding:12px 10px;border:1px solid var(--line);
+  background:var(--card);border-radius:9px;font-size:14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.nbnote{font-size:13px;color:var(--nb);margin:8px 0 0}
+
+/* ---------- Kursliste ---------- */
+.srow{display:flex;align-items:center;gap:11px;padding:12px 0;border-top:1px solid var(--line);cursor:pointer}
+.srow:first-child{border-top:0}
+.sidx{font-family:var(--mono);font-size:12px;color:var(--soft);min-width:22px}
+.skuerzel{flex:1;font-size:15px}
+.sstate{font-family:var(--mono);font-size:12px;color:var(--soft)}
+.sdone{color:var(--ok);font-weight:620}
+.tick{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none}
+.tick.part{background:var(--warn)}
+.tick.full{background:var(--ok)}
+
+/* ---------- Eingaben & Knoepfe ---------- */
+input[type=text],input[type=number],textarea{width:100%;padding:11px 12px;border:1px solid var(--line);
+  border-radius:9px;background:var(--card);font-size:16px}
+textarea{min-height:96px;resize:vertical;line-height:1.45}
+.btn{padding:12px 16px;border:1px solid var(--line);background:var(--card);
+  border-radius:9px;font-size:15px;cursor:pointer}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn.quiet{color:var(--soft)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--paper);
+  border:1px solid var(--line);border-radius:9px;padding:11px;margin:0;
+  white-space:pre-wrap;word-break:break-all;max-height:230px;overflow:auto}
+
+/* ---------- Fussnavigation ---------- */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--card);
+  border-top:1px solid var(--line);padding:8px 14px calc(env(safe-area-inset-bottom) + 8px)}
+.nav-in{max-width:680px;margin:0 auto;display:flex;gap:8px}
+.nav button{flex:1;padding:13px 8px;border:1px solid var(--line);background:var(--card);
+  border-radius:9px;font-size:14px;cursor:pointer}
+.nav button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.nav button:disabled{opacity:.35}
+
+.flash{position:fixed;left:50%;transform:translateX(-50%);bottom:86px;z-index:40;
+  background:var(--ink);color:#fff;padding:10px 16px;border-radius:9px;font-size:14px;
+  opacity:0;pointer-events:none;transition:opacity .2s ease}
+.flash.show{opacity:1}
+.alert{background:#fff4e6;border:1px solid #f0c48a;color:#7c4a06;border-radius:10px;
+  padding:11px 13px;font-size:13px;line-height:1.5;margin-bottom:12px}
+[hidden]{display:none !important}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--mark);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="top-in">
+    <div class="crumbs">
+      <div>
+        <div class="exam">E LK Q2 · 12.08.2026</div>
+        <h1 id="ctxTitle">Kurs</h1>
+      </div>
+    </div>
+    <div class="score" id="scoreBox" hidden>
+      <span class="pts" id="pts">0</span>
+      <span class="of">/ 160</span>
+      <span class="badge"><b id="noteWord">–</b><span id="notePts">–</span></span>
+    </div>
+    <div class="bar" id="barWrap" hidden><i id="bar"></i></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="alert" id="storageAlert" hidden></div>
+
+  <!-- ============ KURS ============ -->
+  <section id="viewKurs">
+    <h2>Klausuren</h2>
+    <div class="card" id="studentList"></div>
+    <h2>Kurs einrichten</h2>
+    <div class="card">
+      <p class="muted" style="margin:0 0 11px">Kürzel statt Klarnamen eintragen — die Zuordnung bleibt in der Excel-Datei. Die Reihenfolge entspricht später den Zeilen im Blatt „Bewertung“.</p>
+      <div class="row">
+        <input type="number" id="countInput" min="1" max="60" style="flex:1;min-width:110px" inputmode="numeric">
+        <button class="btn" id="applyCount">Anzahl übernehmen</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BEWERTEN ============ -->
+  <section id="viewBewerten" hidden>
+    <div class="card">
+      <label class="muted" for="kuerzelInput">Kürzel</label>
+      <input type="text" id="kuerzelInput" autocomplete="off" style="margin-top:7px">
+    </div>
+    <div id="sections"></div>
+    <h2>Fokusschwerpunkt(e)</h2>
+    <div class="card">
+      <p class="muted" style="margin:0 0 9px">Diktieren geht: Mikrofon auf der Tastatur antippen.</p>
+      <textarea id="fokusInput" placeholder="z. B. Sprachrichtigkeit (Grammatik), Belegtechnik"></textarea>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn" id="prevBtn">← Zurück</button>
+      <button class="btn primary" id="nextBtn" style="flex:1">Nächste Klausur →</button>
+    </div>
+  </section>
+
+  <!-- ============ SICHERN ============ -->
+  <section id="viewSichern" hidden>
+    <h2>Stand sichern</h2>
+    <div class="card">
+      <p class="muted" style="margin:0 0 11px">Der Block enthält alle bisher vergebenen Punkte. In den Chat einfügen — daraus entstehen die gefüllte Excel-Datei und die fertigen Erwartungshorizonte.</p>
+      <div class="row" style="margin-bottom:11px">
+        <button class="btn primary" id="copyBtn">Block kopieren</button>
+        <button class="btn" id="showBtn">Anzeigen</button>
+      </div>
+      <pre id="exportBox" hidden></pre>
+    </div>
+    <h2>Stand übernehmen</h2>
+    <div class="card">
+      <p class="muted" style="margin:0 0 11px">Von einem anderen Gerät kommend: Block hier einfügen. Ersetzt den aktuellen Stand.</p>
+      <textarea id="importBox" placeholder="Gesicherten Block einfügen…"></textarea>
+      <div class="row" style="margin-top:11px">
+        <button class="btn" id="importBtn">Übernehmen</button>
+      </div>
+    </div>
+    <h2>Speicher</h2>
+    <div class="card">
+      <p class="muted" id="storageInfo" style="margin:0"></p>
+      <div class="row" style="margin-top:12px">
+        <button class="btn quiet" id="resetBtn">Alle Punkte löschen</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="nav"><div class="nav-in">
+  <button id="tabKurs" class="on">Kurs</button>
+  <button id="tabBewerten">Bewerten</button>
+  <button id="tabSichern">Sichern</button>
+</div></div>
+
+<div class="flash" id="flash"></div>
+
+<script>
+const CONFIG = {"meta": {"exam_title": "Written Exam No. 1 – Gender & Identity", "kurs": "E LK Q2", "fach": "Englisch", "datum": "12.08.2026", "combination_max": 160, "storage_id": "ewh-gender-identity-elkq2"}, "notenfindung": [[0, 0, "6", "ungenügend", 6.0], [32, 1, "5-", "mangelhaft minus", 5.3], [43, 2, "5", "mangelhaft", 5.0], [53, 3, "5+", "mangelhaft plus", 4.7], [64, 4, "4-", "ausreichend minus", 4.3], [72, 5, "4", "ausreichend", 4.0], [80, 6, "4+", "ausreichend plus", 3.7], [88, 7, "3-", "befriedigend minus", 3.3], [96, 8, "3", "befriedigend", 3.0], [104, 9, "3+", "befriedigend plus", 2.7], [112, 10, "2-", "gut minus", 2.3], [120, 11, "2", "gut", 2.0], [128, 12, "2+", "gut plus", 1.7], [136, 13, "1-", "sehr gut minus", 1.3], [144, 14, "1", "sehr gut", 1.0], [152, 15, "1+", "sehr gut plus", 0.7]], "sections": [{"key": "sli_inhalt", "titel": "Inhaltliche Leistung – Schreiben/Lesen integriert", "kurz": "Inhalt SLI", "max": 44, "groups": [{"titel": "Task 1 – Comprehension", "max": 10, "criteria": [{"nr": 1, "field": "Teilaufgabe_1a_Punkte", "max": 4, "short": "Weist auf die im Gedicht genannten, überdurchschnittlich betroffenen Gruppen hin", "intro": "Der Prüfling weist auf die im Gedicht genannten, überdurchschnittlich betroffenen Gruppen hin, z. B.:", "bullets": ["names racial and ethnic minorities as disproportionately affected due to underlying health and social factors", "identifies key/front-line workers as a vulnerable group compared to those able to work remotely", "names homeless people and people experiencing domestic violence as particularly at risk during lockdown", "identifies socially isolated and lonely individuals as a vulnerable group", "names children without digital access (Wi-Fi, computers) as disadvantaged in terms of education"]}, {"nr": 2, "field": "Teilaufgabe_1b_Punkte", "max": 4, "short": "Erklärt die im Gedicht genannten Gründe für die ungleiche Betroffenheit", "intro": "Der Prüfling erklärt die im Gedicht genannten Gründe für die ungleiche Betroffenheit, z. B.:", "bullets": ["explains that pre-existing health conditions such as diabetes and hypertension increase vulnerability", "explains that structural racism and poverty are named as underlying causes of unequal outcomes", "explains that a lack of financial and material resources increases exposure to hardship during lockdown", "explains that unequal access to safe living conditions worsens outcomes for some groups", "explains that unequal access to technology deepens educational inequality among children"]}, {"nr": 3, "field": "Teilaufgabe_1c_Punkte", "max": 2, "short": "Stellt die Ergebnisse strukturiert und kohärent dar", "intro": "Der Prüfling stellt die Ergebnisse strukturiert und kohärent dar, z. B.:", "bullets": ["presents the identified groups and reasons in a logically structured, comprehensible manner", "avoids unnecessary repetition while covering all relevant aspects of the poem", "draws clear connections between group membership and the reasons given for disproportionate impact"]}]}, {"titel": "Task 2 – Analysis", "max": 17, "criteria": [{"nr": 4, "field": "Teilaufgabe_2these_Punkte", "max": 3, "short": "Entwickelt eine schlüssige These, die aufzeigt, wie Register, Stilmittel und Struktur des Gedichts zusammenwirken, um seine intendierte Bedeutung zur ungleichen Betroffenheit während der Pandemie zu vermitteln", "intro": "Der Prüfling entwickelt eine schlüssige These, die aufzeigt, wie Register, Stilmittel und Struktur des Gedichts zusammenwirken, um seine intendierte Bedeutung zur ungleichen Betroffenheit während der Pandemie zu vermitteln, etwa:", "bullets": ["identifies the shift from a personal to a collective, political stance conveyed through structural and stylistic choices", "establishes that the poem's rhetorical strategy (repetition, direct address) reinforces its social critique", "notes that structure and language work together to move the reader from disillusionment to hope", "states that the poem's cumulative effect depends on the interplay of form and content"]}, {"nr": 5, "field": "Teilaufgabe_2sprache_Punkte", "max": 8, "short": "Analysiert die Wirkung von Register und Stilmitteln auf die intendierte Bedeutung des Gedichts", "intro": "Der Prüfling analysiert die Wirkung von Register und Stilmitteln auf die intendierte Bedeutung des Gedichts, z. B.:", "bullets": ["identifies the informal, conversational register established through direct address to the reader (l. 16)", "points out the recurring rhetorical questions that challenge assumptions about \"we\" and \"in\" (ll. 9–10)", "analyses the anaphora on \"For some...\" to emphasise stark social inequality (ll. 37–39)", "examines the antithesis between comfort and hardship created through juxtaposed images (ll. 28–29)", "explains how the tone shifts from despair to hope, signalled by l. 41", "points out the inclusive language (\"we\", \"together\") which is ironically undermined by the content (l. 1)", "identifies the colloquial idiom \"bogus\" as marking a shift towards a critical, informal register (l. 22)", "notes the plain diction and near-conversational tone maintained throughout the poem", "examines how short, direct lines contribute to an urgent, unpolished register"]}, {"nr": 6, "field": "Teilaufgabe_2struktur_Punkte", "max": 6, "short": "Analysiert die strukturelle Gestaltung des Gedichts und ihre Wirkung auf die intendierte Bedeutung", "intro": "Der Prüfling analysiert die strukturelle Gestaltung des Gedichts und ihre Wirkung auf die intendierte Bedeutung, z. B.:", "bullets": ["points out the poem's division into three thematic sections around \"we\", \"in\" and \"together\"", "examines how each section opens on a questioning note before shifting into critique", "notes the turning point at l. 41 marking the shift from despair to hope", "analyses the short, simple stanzas mirroring the poem's direct, unembellished style", "points out the effect of the closing couplet that reframes \"together\" positively (ll. 58–59)", "examines the cumulative, list-like structure of repeated questions that builds emotional intensity", "identifies how the final section's structure mirrors and resolves the opening division"]}]}, {"titel": "Task 3 – Wahlaufgabe", "max": 17, "type": "wahlaufgabe", "options": [{"key": "3a", "label": "3a — Comment", "criteria": [{"nr": 7, "field": "Teilaufgabe_3a1_Punkte", "max": 4, "short": "Positioniert sich klar zu Pichais Zitat", "intro": "Der Prüfling positioniert sich klar zu Pichais Zitat, z. B.:", "bullets": ["takes a clear stance on Pichai's claim about diversity leading to better outcomes", "supports the stance with a coherent line of argument", "differentiates between contexts in which diversity is/is not automatically beneficial", "considers possible counterarguments to Pichai's claim", "draws a well-founded conclusion regarding the validity of the quote"]}, {"nr": 8, "field": "Teilaufgabe_3a2_Punkte", "max": 5, "short": "Stützt seine Position durch Bezugnahme auf das Gedicht", "intro": "Der Prüfling stützt seine Position durch Bezugnahme auf das Gedicht, z. B.:", "bullets": ["connects Pichai's claim to the poem's critique of an unequal \"we\" (l. 5)", "references the poem's depiction of unequal outcomes to assess whether diversity alone guarantees positive results", "uses the poem's closing vision of a fairer world (l. 55) to support or challenge the quote", "draws on the poem's portrayal of systemic inequality to complicate Pichai's optimistic view", "refers to specific examples from the poem (ll. 11–13) to substantiate the argument", "evaluates whether genuine inclusion, as envisioned in the poem, is a precondition for the benefits Pichai describes"]}, {"nr": 9, "field": "Teilaufgabe_3a3_Punkte", "max": 4, "short": "Stützt seine Position durch eigene Erfahrung und Erziehung", "intro": "Der Prüfling stützt seine Position durch eigene Erfahrung und Erziehung, z. B.:", "bullets": ["illustrates the argument with a relevant personal experience or observation", "reflects on how upbringing has shaped the writer's perspective on diversity and inclusion", "connects personal experience plausibly to the wider argument", "demonstrates critical self-reflection rather than mere anecdote", "draws a general insight from the personal example presented"]}, {"nr": 10, "field": "Teilaufgabe_3a4_Punkte", "max": 4, "short": "Strukturiert seinen Kommentar kohärent", "intro": "Der Prüfling strukturiert seinen Kommentar kohärent, z. B.:", "bullets": ["structures the comment with a clear introduction, argumentation and conclusion", "uses appropriate discourse markers to guide the reader through the argument", "maintains a consistent line of argument throughout", "avoids unnecessary repetition or digression", "integrates poem references and personal experience into a coherent overall argument"]}]}, {"key": "3b", "label": "3b — Re-Creation (Letter)", "criteria": [{"nr": 11, "field": "Teilaufgabe_3b1_Punkte", "max": 4, "short": "Greift die im Gedicht formulierte Kritik auf", "intro": "Der Prüfling greift die im Gedicht formulierte Kritik auf, z. B.:", "bullets": ["identifies criticism raised in the poem regarding unequal social outcomes as the basis for the letter", "references the poem's critique of structural inequality (ll. 12–15) to justify the need for political action", "connects the poem's vision of a fairer \"we\" (l. 55) to the letter's political demands", "selects relevant aspects of the poem's criticism appropriate for a political audience", "maintains factual accuracy when referring to the poem's content"]}, {"nr": 12, "field": "Teilaufgabe_3b2_Punkte", "max": 5, "short": "Formuliert drei Verbesserungsvorschläge", "intro": "Der Prüfling formuliert drei Verbesserungsvorschläge, z. B.:", "bullets": ["formulates three concrete, distinct suggestions for political/social improvement", "ensures each suggestion is realistic and appropriate for a representative to act on", "connects each suggestion logically to an aspect of inequality raised in the poem", "prioritises suggestions in a sensible order", "uses persuasive language appropriate for addressing a political representative", "avoids vague or purely rhetorical suggestions without substance"]}, {"nr": 13, "field": "Teilaufgabe_3b3_Punkte", "max": 4, "short": "Integriert eigene Erfahrung sowie den Unterrichtsinhalt \"Privilegien der weißen Bevölkerung\"", "intro": "Der Prüfling integriert eigene Erfahrung sowie den Unterrichtsinhalt \"Privilegien der weißen Bevölkerung\", z. B.:", "bullets": ["integrates a relevant personal experience related to (gender) identity to support the letter's argument explicitly", "draws on work done in class on the privileges of the white population (\"Privilegien der weißen Bevölkerung\") to substantiate the criticism raised", "connects the concept of white privilege to specific inequalities described in the poem", "uses the classroom content on privilege to strengthen the letter's call for political action", "demonstrates an informed, reflective understanding of privilege rather than a superficial reference"]}, {"nr": 14, "field": "Teilaufgabe_3b4_Punkte", "max": 4, "short": "Gestaltet die Brieftextsorte angemessen", "intro": "Der Prüfling gestaltet die Brieftextsorte angemessen, z. B.:", "bullets": ["uses an appropriate formal register for addressing a political representative", "includes conventional letter features (salutation, closing, appropriate structure)", "maintains a respectful yet assertive tone throughout", "adapts vocabulary and phrasing to a US political/cultural context", "ensures the letter reads as a coherent, purposeful piece of persuasive writing"]}]}]}]}, {"key": "sli_darstellung", "titel": "Darstellungsleistung – Schreiben/Lesen integriert", "kurz": "Darstellung SLI", "max": 66, "groups": [{"titel": "Kommunikative Textgestaltung (22 Punkte)", "criteria": [{"field": "Darstellung_1", "max": 6, "short": "Richtet seinen Text konsequent und explizit im Sinne der Aufgabenstellung auf die Intention …", "intro": "Der Prüfling richtet seinen Text konsequent und explizit im Sinne der Aufgabenstellung auf die Intention und den Adressaten aus.", "bullets": []}, {"field": "Darstellung_2", "max": 4, "short": "Beachtet die Textsortenmerkmale der jeweils geforderten Zieltextformate.", "intro": "Der Prüfling beachtet die Textsortenmerkmale der jeweils geforderten Zieltextformate.", "bullets": []}, {"field": "Darstellung_3", "max": 5, "short": "Erstellt einen sachgerecht strukturierten Text.", "intro": "Der Prüfling erstellt einen sachgerecht strukturierten Text.", "bullets": []}, {"field": "Darstellung_4", "max": 4, "short": "Gestaltet seinen Text hinreichend ausführlich, aber ohne unnötige Wiederholungen und Umständ…", "intro": "Der Prüfling gestaltet seinen Text hinreichend ausführlich, aber ohne unnötige Wiederholungen und Umständlichkeiten.", "bullets": []}, {"field": "Darstellung_5", "max": 3, "short": "Belegt seine Aussagen durch eine funktionale Verwendung von Verweisen und Zitaten.", "intro": "Der Prüfling belegt seine Aussagen durch eine funktionale Verwendung von Verweisen und Zitaten.", "bullets": []}]}, {"titel": "Ausdrucksvermögen/Verfügen über sprachliche Mittel (22 Punkte)", "criteria": [{"field": "Darstellung_6", "max": 5, "short": "Löst sich vom Wortlaut des Ausgangstextes und formuliert eigenständig.", "intro": "Der Prüfling löst sich vom Wortlaut des Ausgangstextes und formuliert eigenständig.", "bullets": []}, {"field": "Darstellung_7", "max": 6, "short": "Verwendet funktional einen sachlich wie stilistisch angemessenen und differenzierten allgeme…", "intro": "Der Prüfling verwendet funktional einen sachlich wie stilistisch angemessenen und differenzierten allgemeinen und thematischen Wortschatz.", "bullets": []}, {"field": "Darstellung_8", "max": 4, "short": "Verwendet einen funktional angemessenen Wortschatz zur Textproduktion und Textbesprechung.", "intro": "Der Prüfling verwendet einen funktional angemessenen Wortschatz zur Textproduktion und Textbesprechung.", "bullets": []}, {"field": "Darstellung_9", "max": 7, "short": "Verwendet einen variablen und dem jeweiligen Zieltextformat angemessenen Satzbau.", "intro": "Der Prüfling verwendet einen variablen und dem jeweiligen Zieltextformat angemessenen Satzbau.", "bullets": []}]}, {"titel": "Sprachrichtigkeit (22 Punkte)", "criteria": [{"field": "Darstellung_10", "max": 9, "short": "Wortschatz — Der Prüfling beachtet die Normen der sprachlichen Korrektheit im Sinne einer ge…", "intro": "Wortschatz — Der Prüfling beachtet die Normen der sprachlichen Korrektheit im Sinne einer gelingenden Kommunikation.", "bullets": []}, {"field": "Darstellung_11", "max": 9, "short": "Grammatik", "intro": "Grammatik", "bullets": []}, {"field": "Darstellung_12", "max": 4, "short": "Orthografie", "intro": "Orthografie", "bullets": []}]}]}, {"key": "med_inhalt", "titel": "Inhaltliche Leistung – Sprachmittlung", "kurz": "Inhalt Mediation", "max": 20, "groups": [{"titel": "Task 4 – E-Mail an William", "max": 20, "criteria": [{"nr": 27, "field": "Teilaufgabe_4a_Punkte", "max": 8, "short": "Erklärt William Krafts Sicht auf Queerness und Geschlechtsidentität im Shakespeare-Theater", "intro": "Der Prüfling erklärt William Krafts Sicht auf Queerness und Geschlechtsidentität im Shakespeare-Theater, z. B.:", "bullets": ["explains that Kraft sees the original play as already full of queerness through gender-swapping", "explains that in Shakespeare's time all roles were played by male-read actors, creating layered gender ambiguity", "explains that Rosalind, played by a man, disguises herself as a man within the play, creating a doubled gender performance", "explains that Rosalind and Celia are cousins yet also one of the play's great love pairs", "explains that many scenes play with typical gender roles and expose their absurdity", "explains that Kraft describes the play as full of subversive humour", "explains that Kraft's working title reflects a mix of provocation and playfulness regarding gender/sexuality", "explains that Kraft aims to make the absurdity of heteronormative pairing explicit in his production", "explains that Kraft's production culminates in \"opening marriage for all\""]}, {"nr": 28, "field": "Teilaufgabe_4b_Punkte", "max": 6, "short": "Erklärt Krafts Haltung zur Liebe im Shakespeare-Theater", "intro": "Der Prüfling erklärt Krafts Haltung zur Liebe im Shakespeare-Theater, z. B.:", "bullets": ["explains that, according to Kraft, love is the main driving force of the plot", "explains that love is not gender-bound but a universal power affecting everyone equally", "explains that despite this, the pairs are ultimately sorted in a heteronormative way at the end", "explains that Kraft's production intends to exaggerate this heteronormative sorting to expose its absurdity", "explains that Kraft's production resolves this by \"opening marriage for all\"", "explains that love is presented as universally relatable across time and gender", "explains that Kraft connects his own ability to relate to the characters' feelings to the timelessness of love in the play"]}, {"nr": 29, "field": "Teilaufgabe_4c_Punkte", "max": 6, "short": "Erklärt Krafts selbstgewählte Mission", "intro": "Der Prüfling erklärt Krafts selbstgewählte Mission, z. B.:", "bullets": ["explains that Kraft aims for his productions to be enjoyed equally by his parents and his queer friends", "explains that Kraft aims to appeal both to audiences familiar with drag culture and those encountering it for the first time", "explains that Kraft's goal is for his work to be enriching and accessible to all types of audiences", "explains that Kraft acknowledges this inclusive aim is not always easy to achieve", "explains that Kraft values theatre's potential to bring very different people together", "explains that Kraft finds this bridging effect deeply rewarding", "explains that Kraft's overarching mission is to use historical distance to reveal universal truths about being human"]}]}]}, {"key": "med_darstellung", "titel": "Darstellungsleistung – Sprachmittlung", "kurz": "Darstellung Mediation", "max": 30, "groups": [{"titel": "Kommunikative Textgestaltung (10 Punkte)", "criteria": [{"field": "Darstellung_13", "max": 10, "short": "Richtet seinen Text konsequent und explizit auf die Intention und den Adressatenkreis im Sin…", "intro": "Der Prüfling richtet seinen Text konsequent und explizit auf die Intention und den Adressatenkreis im Sinne der Aufgabenstellung aus, berücksichtigt den situativen Kontext, beachtet die Textsortenmerkmale des geforderten Zieltextformats, erstellt einen sachgerecht strukturierten Text und gestaltet seinen Text hinreichend ausführlich, aber ohne unnötige Wiederholungen und Umständlichkeiten.", "bullets": []}]}, {"titel": "Ausdrucksvermögen/Verfügen über sprachliche Mittel (10 Punkte)", "criteria": [{"field": "Darstellung_14", "max": 10, "short": "Löst sich vom Wortlaut des Ausgangstextes und formuliert eigenständig, ggf. unter Verwendung…", "intro": "Der Prüfling löst sich vom Wortlaut des Ausgangstextes und formuliert eigenständig, ggf. unter Verwendung von Kompensationsstrategien, verwendet funktional einen sachlich wie stilistisch angemessenen und differenzierten allgemeinen, thematischen und Funktionswortschatz und verwendet einen variablen und dem jeweiligen Zieltextformat angemessenen Satzbau.", "bullets": []}]}, {"titel": "Sprachrichtigkeit (10 Punkte)", "criteria": [{"field": "Darstellung_15", "max": 10, "short": "Beachtet die Normen der sprachlichen Korrektheit im Sinne einer gelingenden Kommunikation (W…", "intro": "Der Prüfling beachtet die Normen der sprachlichen Korrektheit im Sinne einer gelingenden Kommunikation (Wortschatz, Grammatik, Orthografie).", "bullets": []}]}]}]};
+const KEY = "ewh:" + CONFIG.meta.storage_id;
+const MAXTOTAL = CONFIG.meta.combination_max;
+
+/* ---------- Kriterien flach einsammeln ---------- */
+const ALL = [];              // alle Kriterien inkl. beider Wahloptionen
+const WAHL = {};             // gruppenKey -> {options:[{key,fields}]}
+CONFIG.sections.forEach(sec => sec.groups.forEach((grp, gi) => {
+  const gkey = sec.key + ":" + gi;
+  if (grp.type === "wahlaufgabe") {
+    WAHL[gkey] = { options: grp.options.map(o => ({ key: o.key, fields: o.criteria.map(c => c.field) })) };
+    grp.options.forEach(o => o.criteria.forEach(c =>
+      ALL.push(Object.assign({}, c, { sec: sec.key, gkey, wahl: o.key }))));
+  } else {
+    grp.criteria.forEach(c => ALL.push(Object.assign({}, c, { sec: sec.key, gkey, wahl: null })));
+  }
+}));
+const DEFAULT_WAHL = {};
+Object.keys(WAHL).forEach(k => DEFAULT_WAHL[k] = WAHL[k].options[0].key);
+
+/* ---------- Zustand ---------- */
+let state = null, idx = 0, view = "kurs", storageOK = true;
+
+function blankStudent(i) {
+  return { k: String(i + 1).padStart(2, "0"), p: {}, w: Object.assign({}, DEFAULT_WAHL), f: "" };
+}
+function freshState(n) {
+  return { v: 1, exam: CONFIG.meta.storage_id, saved: null,
+           students: Array.from({ length: n }, (_, i) => blankStudent(i)) };
+}
+
+/* ---------- Speichern ---------- */
+let saveTimer = null;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    state.saved = new Date().toISOString();
+    try { localStorage.setItem(KEY, JSON.stringify(state)); storageOK = true; }
+    catch (e) { storageOK = false; showStorageAlert(); }
+    renderStorageInfo();
+  }, 250);
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    return (d && Array.isArray(d.students)) ? d : null;
+  } catch (e) { storageOK = false; return null; }
+}
+function showStorageAlert() {
+  const el = document.getElementById("storageAlert");
+  el.textContent = "Dieses Gerät speichert gerade nicht automatisch. Sichere deinen Stand über „Sichern“, bevor du die Seite schließt.";
+  el.hidden = false;
+}
+
+/* ---------- Rechnen ---------- */
+function activeFields(st) {
+  const out = new Set();
+  ALL.forEach(c => {
+    if (!c.wahl) { out.add(c.field); return; }
+    if (st.w[c.gkey] === c.wahl) out.add(c.field);
+  });
+  return out;
+}
+function total(st) {
+  let sum = 0;
+  activeFields(st).forEach(f => { const v = st.p[f]; if (typeof v === "number") sum += v; });
+  return sum;
+}
+function filled(st) {
+  const act = activeFields(st);
+  let n = 0;
+  act.forEach(f => { if (typeof st.p[f] === "number") n++; });
+  return { n, of: act.size };
+}
+function grade(points) {
+  const t = CONFIG.notenfindung;
+  let hit = t[0];
+  for (const row of t) if (points >= row[0]) hit = row;
+  return { np: hit[1], kurz: hit[2], wort: hit[3] };
+}
+
+/* ---------- Anzeige: Kopfzeile ---------- */
+function renderHead() {
+  const box = document.getElementById("scoreBox"), bw = document.getElementById("barWrap");
+  if (view !== "bewerten") {
+    box.hidden = true; bw.hidden = true;
+    document.getElementById("ctxTitle").textContent = (view === "kurs") ? "Kurs" : "Sichern";
+    return;
+  }
+  const st = state.students[idx], pts = total(st), g = grade(pts), pr = filled(st);
+  document.getElementById("ctxTitle").textContent =
+    "Klausur " + (idx + 1) + " von " + state.students.length + " · " + (st.k || "—");
+  document.getElementById("pts").textContent = pts;
+  document.getElementById("noteWord").textContent = pr.n ? g.kurz : "–";
+  document.getElementById("notePts").textContent = pr.n ? (g.np + " P.") : "–";
+  document.getElementById("bar").style.width = (pr.of ? (pr.n / pr.of * 100) : 0) + "%";
+  box.hidden = false; bw.hidden = false;
+}
+
+/* ---------- Anzeige: Kursliste ---------- */
+function renderKurs() {
+  const host = document.getElementById("studentList");
+  host.innerHTML = "";
+  state.students.forEach((st, i) => {
+    const pr = filled(st), pts = total(st), g = grade(pts);
+    const row = document.createElement("div");
+    row.className = "srow";
+    const done = pr.n === pr.of && pr.of > 0;
+    row.innerHTML =
+      '<span class="tick ' + (done ? "full" : (pr.n ? "part" : "")) + '"></span>' +
+      '<span class="sidx">' + String(i + 1).padStart(2, "0") + "</span>" +
+      '<span class="skuerzel"></span>' +
+      '<span class="sstate ' + (done ? "sdone" : "") + '">' +
+        (pr.n ? (done ? (pts + " · " + g.kurz) : (pr.n + "/" + pr.of)) : "offen") + "</span>";
+    row.querySelector(".skuerzel").textContent = st.k || "—";
+    row.addEventListener("click", () => { idx = i; setView("bewerten"); });
+    host.appendChild(row);
+  });
+  document.getElementById("countInput").value = state.students.length;
+}
+
+/* ---------- Anzeige: Bewertungsbogen ---------- */
+function tapRow(st, crit, disabled) {
+  const wrap = document.createElement("div");
+  wrap.className = "taps";
+  for (let v = 0; v <= crit.max; v++) {
+    const b = document.createElement("button");
+    b.className = "tap"; b.type = "button"; b.textContent = v;
+    b.setAttribute("aria-pressed", String(st.p[crit.field] === v));
+    b.setAttribute("aria-label", crit.short + ": " + v + " von " + crit.max);
+    if (disabled) b.disabled = true;
+    b.addEventListener("click", () => {
+      st.p[crit.field] = (st.p[crit.field] === v) ? undefined : v;
+      if (st.p[crit.field] === undefined) delete st.p[crit.field];
+      save(); renderHead();
+      wrap.querySelectorAll(".tap").forEach((x, n) =>
+        x.setAttribute("aria-pressed", String(st.p[crit.field] === n)));
+    });
+    wrap.appendChild(b);
+  }
+  return wrap;
+}
+function critBlock(st, crit, off) {
+  const d = document.createElement("div");
+  d.className = "crit" + (off ? " off" : "");
+  const head = document.createElement("div");
+  head.className = "chead";
+  head.innerHTML = '<span class="cnr"></span><span class="ctext"></span><span class="cmax"></span>';
+  head.querySelector(".cnr").textContent = crit.nr ? crit.nr : "";
+  head.querySelector(".ctext").textContent = crit.short;
+  head.querySelector(".cmax").textContent = "max " + crit.max;
+  d.appendChild(head);
+  if (crit.intro && (crit.bullets.length || crit.intro !== crit.short)) {
+    const btn = document.createElement("button");
+    btn.className = "more"; btn.type = "button"; btn.textContent = "Kriterium anzeigen";
+    const long = document.createElement("div");
+    long.className = "long"; long.hidden = true;
+    const p = document.createElement("p"); p.textContent = crit.intro; long.appendChild(p);
+    if (crit.bullets.length) {
+      const ul = document.createElement("ul");
+      crit.bullets.forEach(b => { const li = document.createElement("li"); li.textContent = b; ul.appendChild(li); });
+      long.appendChild(ul);
+    }
+    btn.addEventListener("click", () => {
+      long.hidden = !long.hidden;
+      btn.textContent = long.hidden ? "Kriterium anzeigen" : "Kriterium ausblenden";
+    });
+    d.appendChild(btn); d.appendChild(long);
+  }
+  d.appendChild(tapRow(st, crit, off));
+  return d;
+}
+function renderBewerten() {
+  const st = state.students[idx];
+  document.getElementById("kuerzelInput").value = st.k || "";
+  document.getElementById("fokusInput").value = st.f || "";
+  const host = document.getElementById("sections");
+  host.innerHTML = "";
+  CONFIG.sections.forEach(sec => {
+    const h = document.createElement("h2");
+    h.textContent = sec.titel + " (" + sec.max + ")";
+    host.appendChild(h);
+    sec.groups.forEach((grp, gi) => {
+      const gkey = sec.key + ":" + gi;
+      const card = document.createElement("div");
+      card.className = "card";
+      const h3 = document.createElement("h3");
+      h3.textContent = grp.titel + (grp.max ? " (" + grp.max + " Punkte)" : "");
+      h3.style.marginTop = "0";
+      card.appendChild(h3);
+      if (grp.type === "wahlaufgabe") {
+        const seg = document.createElement("div");
+        seg.className = "seg";
+        grp.options.forEach(o => {
+          const b = document.createElement("button");
+          b.type = "button"; b.textContent = o.label;
+          b.setAttribute("aria-pressed", String(st.w[gkey] === o.key));
+          b.addEventListener("click", () => { st.w[gkey] = o.key; save(); renderBewerten(); renderHead(); });
+          seg.appendChild(b);
+        });
+        card.appendChild(seg);
+        grp.options.forEach(o => {
+          if (st.w[gkey] !== o.key) return;
+          o.criteria.forEach(c => card.appendChild(critBlock(st, c, false)));
+        });
+        const other = grp.options.find(o => o.key !== st.w[gkey]);
+        if (other) {
+          const n = document.createElement("p");
+          n.className = "nbnote";
+          n.textContent = other.label + " wird nicht bewertet (nb).";
+          card.appendChild(n);
+        }
+      } else {
+        grp.criteria.forEach(c => card.appendChild(critBlock(st, c, false)));
+      }
+      host.appendChild(card);
+    });
+  });
+  document.getElementById("prevBtn").disabled = (idx === 0);
+  document.getElementById("nextBtn").disabled = (idx >= state.students.length - 1);
+}
+
+/* ---------- Sichern ---------- */
+function exportText() {
+  const slim = {
+    v: 1, exam: state.exam, kurs: CONFIG.meta.kurs, datum: CONFIG.meta.datum,
+    saved: new Date().toISOString(),
+    students: state.students.map(s => ({ k: s.k, w: s.w, p: s.p, f: s.f }))
+  };
+  return "EWH-DATEN " + JSON.stringify(slim);
+}
+function renderStorageInfo() {
+  const el = document.getElementById("storageInfo");
+  if (!el) return;
+  const when = state.saved ? new Date(state.saved).toLocaleString("de-DE",
+    { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
+  const done = state.students.filter(s => { const p = filled(s); return p.of && p.n === p.of; }).length;
+  el.textContent = (storageOK ? "Automatisch gespeichert: " + when : "Automatisches Speichern nicht verfügbar.")
+    + " · " + done + " von " + state.students.length + " Klausuren fertig.";
+}
+function flash(msg) {
+  const f = document.getElementById("flash");
+  f.textContent = msg; f.classList.add("show");
+  setTimeout(() => f.classList.remove("show"), 1800);
+}
+
+/* ---------- Navigation ---------- */
+function setView(v) {
+  view = v;
+  document.getElementById("viewKurs").hidden = (v !== "kurs");
+  document.getElementById("viewBewerten").hidden = (v !== "bewerten");
+  document.getElementById("viewSichern").hidden = (v !== "sichern");
+  document.getElementById("tabKurs").className = (v === "kurs") ? "on" : "";
+  document.getElementById("tabBewerten").className = (v === "bewerten") ? "on" : "";
+  document.getElementById("tabSichern").className = (v === "sichern") ? "on" : "";
+  if (v === "kurs") renderKurs();
+  if (v === "bewerten") renderBewerten();
+  if (v === "sichern") { document.getElementById("exportBox").hidden = true; renderStorageInfo(); }
+  renderHead();
+  window.scrollTo(0, 0);
+}
+
+/* ---------- Start ---------- */
+(function init() {
+  state = load() || freshState(30);
+  if (!state.students.length) state = freshState(30);
+  state.students.forEach(s => { s.w = Object.assign({}, DEFAULT_WAHL, s.w || {}); s.p = s.p || {}; });
+  if (!storageOK) showStorageAlert();
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+  document.getElementById("tabKurs").onclick = () => setView("kurs");
+  document.getElementById("tabBewerten").onclick = () => setView("bewerten");
+  document.getElementById("tabSichern").onclick = () => setView("sichern");
+
+  document.getElementById("prevBtn").onclick = () => { if (idx > 0) { idx--; setView("bewerten"); } };
+  document.getElementById("nextBtn").onclick = () => {
+    if (idx < state.students.length - 1) { idx++; setView("bewerten"); }
+  };
+  document.getElementById("kuerzelInput").addEventListener("input", e => {
+    state.students[idx].k = e.target.value; save(); renderHead();
+  });
+  document.getElementById("fokusInput").addEventListener("input", e => {
+    state.students[idx].f = e.target.value; save();
+  });
+  document.getElementById("applyCount").onclick = () => {
+    const n = Math.max(1, Math.min(60, parseInt(document.getElementById("countInput").value, 10) || 1));
+    const cur = state.students.length;
+    if (n > cur) for (let i = cur; i < n; i++) state.students.push(blankStudent(i));
+    if (n < cur) {
+      const lost = state.students.slice(n).some(s => filled(s).n > 0);
+      if (lost && !confirm("In den entfernten Klausuren stehen bereits Punkte. Wirklich löschen?")) return;
+      state.students = state.students.slice(0, n);
+      if (idx >= n) idx = n - 1;
+    }
+    save(); renderKurs(); flash("Kurs auf " + n + " Klausuren gesetzt");
+  };
+  document.getElementById("showBtn").onclick = () => {
+    const box = document.getElementById("exportBox");
+    box.textContent = exportText(); box.hidden = !box.hidden;
+  };
+  document.getElementById("copyBtn").onclick = async () => {
+    const txt = exportText();
+    try { await navigator.clipboard.writeText(txt); flash("Block kopiert"); }
+    catch (e) {
+      const box = document.getElementById("exportBox");
+      box.textContent = txt; box.hidden = false;
+      flash("Bitte von Hand markieren und kopieren");
+    }
+  };
+  document.getElementById("importBtn").onclick = () => {
+    const raw = document.getElementById("importBox").value.trim().replace(/^EWH-DATEN\s*/, "");
+    let d;
+    try { d = JSON.parse(raw); } catch (e) { flash("Block nicht lesbar"); return; }
+    if (!d || !Array.isArray(d.students)) { flash("Block nicht lesbar"); return; }
+    if (d.exam && d.exam !== CONFIG.meta.storage_id) {
+      if (!confirm("Dieser Block gehört zu einer anderen Klausur. Trotzdem übernehmen?")) return;
+    }
+    if (!confirm("Aktuellen Stand ersetzen?")) return;
+    state.students = d.students.map(s => ({
+      k: s.k || "", p: s.p || {}, w: Object.assign({}, DEFAULT_WAHL, s.w || {}), f: s.f || "" }));
+    idx = 0; save(); document.getElementById("importBox").value = "";
+    setView("kurs"); flash("Stand übernommen");
+  };
+  document.getElementById("resetBtn").onclick = () => {
+    if (!confirm("Wirklich alle Punkte dieser Klausur löschen?")) return;
+    const n = state.students.length;
+    state = freshState(n); idx = 0; save(); setView("kurs"); flash("Zurückgesetzt");
+  };
+  setView("kurs");
+})();
+</script>
+</body>
+</html>
