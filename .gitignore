@@ -1,0 +1,33 @@
+# --------------------------------------------------------------------------
+# Was NIEMALS ins oeffentliche Repository gehoert
+# --------------------------------------------------------------------------
+
+# Excel-Dateien: enthalten nach der Korrektur Klarnamen und E-Mail-Adressen
+*.xlsx
+*.xlsm
+*.xls
+*.csv
+
+# Word-Dateien: Seriendruckvorlagen und fertige EWHs
+*.docx
+*.doc
+
+# Zwischenschritte der Pipeline
+_zwischenschritte/
+ausgabe/
+node_modules/
+
+# Sicherungsbloecke und Kurslisten
+daten.txt
+*_daten.txt
+kursliste*.txt
+kursliste*.csv
+
+# Klausur-PDFs
+*.pdf
+
+# Systemdateien
+.DS_Store
+Thumbs.db
+desktop.ini
+~$*
