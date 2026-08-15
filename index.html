@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Arbeiten bewerten">
+<meta name="theme-color" content="#14212e">
+<title>Arbeiten bewerten</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%2314212e'/><text x='90' y='134' font-size='124' font-weight='600' font-family='-apple-system,BlinkMacSystemFont,Helvetica,sans-serif' fill='%23ffffff' text-anchor='middle'>A</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%2314212e'/><text x='90' y='134' font-size='124' font-weight='600' font-family='-apple-system,BlinkMacSystemFont,Helvetica,sans-serif' fill='%23ffffff' text-anchor='middle'>A</text></svg>">
+<style>
+:root{
+  --ink:#14212e; --soft:#5a6b7c; --paper:#e9edf1; --card:#fff; --line:#d3dae2;
+  --mark:#1d4ed8; --ok:#4d7c0f; --warn:#b45309; --nb:#98a4b0;
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+  -webkit-text-size-adjust:100%}
+button,input,textarea,select{font:inherit;color:inherit}
+.wrap{max-width:680px;margin:0 auto;padding:0 14px 96px}
+h1{font-size:19px;line-height:1.25;letter-spacing:-.01em;margin:0;font-weight:640}
+h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--soft);
+  margin:24px 0 10px;font-weight:620}
+h3{font-size:15px;margin:20px 0 10px;font-weight:620}
+.muted{color:var(--soft);font-size:13px;line-height:1.5}
+.top{position:sticky;top:0;z-index:20;background:var(--paper);
+  padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;border-bottom:1px solid var(--line)}
+.top-in{max-width:680px;margin:0 auto}
+.exam{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--soft);margin-bottom:3px}
+.score{display:flex;align-items:baseline;gap:8px;margin-top:9px}
+.score .pts{font-family:var(--mono);font-size:26px;font-weight:640;line-height:1}
+.score .of{font-family:var(--mono);font-size:13px;color:var(--soft)}
+.badge{margin-left:auto;display:inline-flex;align-items:baseline;gap:7px;
+  background:var(--ink);color:#fff;border-radius:8px;padding:6px 11px}
+.badge b{font-size:15px}
+.badge span{font-family:var(--mono);font-size:12px;opacity:.85}
+.bar{height:4px;background:var(--line);border-radius:2px;margin-top:9px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--mark);width:0;transition:width .18s ease}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.crit{padding:14px 0;border-top:1px solid var(--line)}
+.crit:first-child{border-top:0;padding-top:2px}
+.chead{display:flex;gap:10px;align-items:flex-start;margin-bottom:9px}
+.cnr{font-family:var(--mono);font-size:12px;color:var(--soft);flex:none;padding-top:2px;min-width:20px}
+.ctext{flex:1;font-size:15px;line-height:1.4}
+.cmax{font-family:var(--mono);font-size:12px;color:var(--soft);flex:none;padding-top:2px}
+.more{background:none;border:0;color:var(--mark);font-size:13px;padding:6px 0 0;cursor:pointer}
+.long{margin:9px 0 0;padding:11px 12px;background:var(--paper);border-radius:9px;font-size:14px;line-height:1.5}
+.long p{margin:0 0 8px}
+.long ul{margin:0;padding-left:19px}
+.long li{margin-bottom:5px}
+.taps{display:flex;gap:6px;flex-wrap:wrap}
+.tap{font-family:var(--mono);font-size:16px;min-width:44px;height:44px;
+  border:1px solid var(--line);background:var(--card);border-radius:9px;cursor:pointer}
+.tap[aria-pressed="true"]{background:var(--mark);border-color:var(--mark);color:#fff;font-weight:640}
+.seg{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.seg button{flex:1;min-width:140px;padding:12px 10px;border:1px solid var(--line);
+  background:var(--card);border-radius:9px;font-size:14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.nbnote{font-size:13px;color:var(--nb);margin:8px 0 0}
+.srow{display:flex;align-items:center;gap:11px;padding:12px 0;border-top:1px solid var(--line);cursor:pointer}
+.srow:first-child{border-top:0}
+.sidx{font-family:var(--mono);font-size:12px;color:var(--soft);min-width:22px}
+.sname{flex:1;font-size:15px;min-width:0}
+.sname small{display:block;font-family:var(--mono);font-size:11px;color:var(--soft);margin-top:1px}
+.sstate{font-family:var(--mono);font-size:12px;color:var(--soft);flex:none}
+.sdone{color:var(--ok);font-weight:620}
+.tick{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none}
+.tick.part{background:var(--warn)}
+.tick.full{background:var(--ok)}
+input[type=text],input[type=number],textarea{width:100%;padding:11px 12px;border:1px solid var(--line);
+  border-radius:9px;background:var(--card);font-size:16px}
+textarea{min-height:96px;resize:vertical;line-height:1.45;font-family:var(--mono);font-size:13px}
+.btn{padding:12px 16px;border:1px solid var(--line);background:var(--card);border-radius:9px;
+  font-size:15px;cursor:pointer}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn.quiet{color:var(--soft)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--paper);
+  border:1px solid var(--line);border-radius:9px;padding:11px;margin:0;
+  white-space:pre-wrap;word-break:break-all;max-height:230px;overflow:auto}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--card);
+  border-top:1px solid var(--line);padding:8px 12px calc(env(safe-area-inset-bottom) + 8px)}
+.nav-in{max-width:680px;margin:0 auto;display:flex;gap:6px}
+.nav button{flex:1;padding:12px 4px;border:1px solid var(--line);background:var(--card);
+  border-radius:9px;font-size:13px;cursor:pointer}
+.nav button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.nav button:disabled{opacity:.35}
+.flash{position:fixed;left:50%;transform:translateX(-50%);bottom:88px;z-index:40;
+  background:var(--ink);color:#fff;padding:10px 16px;border-radius:9px;font-size:14px;
+  opacity:0;pointer-events:none;transition:opacity .2s ease;max-width:90%;text-align:center}
+.flash.show{opacity:1}
+.alert{background:#fff4e6;border:1px solid #f0c48a;color:#7c4a06;border-radius:10px;
+  padding:11px 13px;font-size:13px;line-height:1.5;margin-bottom:12px}
+.privacy{font-size:12px;color:var(--soft);line-height:1.5;margin:10px 0 0}
+[hidden]{display:none !important}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--mark);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+
+<div class="top"><div class="top-in">
+  <div class="exam" id="ctxExam">Arbeiten bewerten</div>
+  <h1 id="ctxTitle">Klausuren</h1>
+  <div class="score" id="scoreBox" hidden>
+    <span class="pts" id="pts">0</span>
+    <span class="of" id="ptsMax">/ 0</span>
+    <span class="badge"><b id="noteWord">–</b><span id="notePts">–</span></span>
+  </div>
+  <div class="bar" id="barWrap" hidden><i id="bar"></i></div>
+</div></div>
+
+<div class="wrap">
+  <div class="alert" id="storageAlert" hidden></div>
+
+  <section id="viewKlausuren">
+    <h2>Verfügbare Klausuren</h2>
+    <div class="card" id="examList"><p class="muted" style="margin:0">Lade Klausuren…</p></div>
+    <div class="row"><button class="btn quiet" id="refreshBtn">Liste aktualisieren</button></div>
+    <p class="privacy">Punkte und Kursliste liegen ausschließlich auf diesem Gerät. Übertragen wird nur, was du selbst über „Sichern“ kopierst — Kürzel und Punkte, keine Namen.</p>
+  </section>
+
+  <section id="viewKurs" hidden>
+    <h2>Klausuren im Kurs</h2>
+    <div class="card" id="studentList"></div>
+    <h2>Kursliste</h2>
+    <div class="card">
+      <p class="muted" style="margin:0 0 10px">Eine Zeile je Person: <b>Nachname · Vorname · E-Mail</b>, getrennt durch Tabulator oder Semikolon. Direkt aus Excel kopierbar. Bleibt auf diesem Gerät.</p>
+      <textarea id="kursInput" placeholder="Sielberg;Anna;anna.sielberg@…"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="kursApply">Kursliste übernehmen</button>
+        <button class="btn quiet" id="kursCopy">Für Excel kopieren</button>
+      </div>
+      <p class="muted" id="kursInfo" style="margin:11px 0 0"></p>
+    </div>
+    <h2>Ohne Kursliste</h2>
+    <div class="card">
+      <p class="muted" style="margin:0 0 10px">Anzahl der Klausuren festlegen; Kürzel trägst du dann je Arbeit von Hand ein.</p>
+      <div class="row">
+        <input type="number" id="countInput" min="1" max="60" style="flex:1;min-width:110px" inputmode="numeric">
+        <button class="btn" id="applyCount">Anzahl übernehmen</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="viewBewerten" hidden>
+    <div class="card">
+      <label class="muted" for="kuerzelInput">Kürzel</label>
+      <input type="text" id="kuerzelInput" autocomplete="off" style="margin-top:7px">
+      <p class="muted" id="klarname" style="margin:9px 0 0"></p>
+    </div>
+    <div id="sections"></div>
+    <h2>Fokusschwerpunkt(e)</h2>
+    <div class="card">
+      <p class="muted" style="margin:0 0 9px">Diktieren geht: Mikrofon auf der Tastatur antippen.</p>
+      <textarea id="fokusInput" style="font-family:inherit;font-size:16px" placeholder="z. B. Sprachrichtigkeit (Grammatik), Belegtechnik"></textarea>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn" id="prevBtn">← Zurück</button>
+      <button class="btn primary" id="nextBtn" style="flex:1">Nächste Arbeit →</button>
+    </div>
+  </section>
+
+  <section id="viewSichern" hidden>
+    <h2>Stand sichern</h2>
+    <div class="card">
+      <p class="muted" style="margin:0 0 11px">Enthält Kürzel und Punkte — keine Namen. In den Chat einfügen; daraus entstehen die gefüllte Excel-Datei und die Seriendruckvorlage.</p>
+      <div class="row" style="margin-bottom:11px">
+        <button class="btn primary" id="copyBtn">Block kopieren</button>
+        <button class="btn" id="showBtn">Anzeigen</button>
+      </div>
+      <pre id="exportBox" hidden></pre>
+    </div>
+    <h2>Stand übernehmen</h2>
+    <div class="card">
+      <p class="muted" style="margin:0 0 11px">Von einem anderen Gerät kommend: Block hier einfügen. Ersetzt den aktuellen Stand dieser Klausur.</p>
+      <textarea id="importBox" placeholder="Gesicherten Block einfügen…"></textarea>
+      <div class="row" style="margin-top:11px"><button class="btn" id="importBtn">Übernehmen</button></div>
+    </div>
+    <h2>Speicher</h2>
+    <div class="card">
+      <p class="muted" id="storageInfo" style="margin:0"></p>
+      <div class="row" style="margin-top:12px">
+        <button class="btn quiet" id="resetBtn">Punkte dieser Klausur löschen</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="nav"><div class="nav-in">
+  <button id="tabKlausuren" class="on">Klausuren</button>
+  <button id="tabKurs" disabled>Kurs</button>
+  <button id="tabBewerten" disabled>Bewerten</button>
+  <button id="tabSichern" disabled>Sichern</button>
+</div></div>
+
+<div class="flash" id="flash"></div>
+
+<script>
+"use strict";
+const CATALOG_URL = "klausuren/index.json";
+const K_CATALOG = "ewh:app:catalog";
+const K_CFG = id => "ewh:app:cfg:" + id;
+const K_DATA = id => "ewh:" + id;                    // kompatibel zur ersten Fassung
+const K_KURS = kurs => "ewh:app:kurs:" + kurs.replace(/\s+/g, "_");
+
+let catalog = [], CFG = null, state = null, idx = 0, view = "klausuren";
+let ALL = [], WAHL = {}, DEFAULT_WAHL = {}, storageOK = true, kursliste = [];
+
+/* ---------------- Speicher ---------------- */
+function lsGet(k) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; }
+                    catch (e) { storageOK = false; return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); storageOK = true; return true; }
+                       catch (e) { storageOK = false; showStorageAlert(); return false; } }
+function showStorageAlert() {
+  const el = document.getElementById("storageAlert");
+  el.textContent = "Dieses Gerät speichert gerade nicht automatisch. Sichere deinen Stand über „Sichern“, bevor du die Seite schließt.";
+  el.hidden = false;
+}
+let saveTimer = null;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    state.saved = new Date().toISOString();
+    lsSet(K_DATA(CFG.meta.storage_id), state);
+    renderStorageInfo();
+  }, 250);
+}
+
+/* ---------------- Katalog ---------------- */
+async function loadCatalog(force) {
+  const cached = lsGet(K_CATALOG);
+  if (cached && !force) { catalog = cached; renderExamList(); }
+  try {
+    const res = await fetch(CATALOG_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    catalog = data.klausuren || [];
+    lsSet(K_CATALOG, catalog);
+    renderExamList();
+  } catch (e) {
+    if (!cached) {
+      document.getElementById("examList").innerHTML =
+        '<p class="muted" style="margin:0">Keine Verbindung und noch nichts gespeichert. Einmal mit Netz öffnen, danach geht es offline.</p>';
+    } else if (force) { flash("Keine Verbindung — zeige gespeicherte Liste"); }
+  }
+}
+async function loadExam(entry) {
+  let cfg = lsGet(K_CFG(entry.id));
+  if (!cfg) {
+    try {
+      const res = await fetch(entry.file, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      cfg = await res.json();
+      lsSet(K_CFG(entry.id), cfg);
+    } catch (e) { flash("Klausur konnte nicht geladen werden"); return; }
+  }
+  activate(cfg);
+}
+function activate(cfg) {
+  CFG = cfg;
+  ALL = []; WAHL = {}; DEFAULT_WAHL = {};
+  CFG.sections.forEach(sec => sec.groups.forEach((grp, gi) => {
+    const gkey = sec.key + ":" + gi;
+    if (grp.type === "wahlaufgabe") {
+      WAHL[gkey] = { options: grp.options.map(o => ({ key: o.key, fields: o.criteria.map(c => c.field) })) };
+      DEFAULT_WAHL[gkey] = grp.options[0].key;
+      grp.options.forEach(o => o.criteria.forEach(c =>
+        ALL.push(Object.assign({}, c, { sec: sec.key, gkey, wahl: o.key }))));
+    } else {
+      grp.criteria.forEach(c => ALL.push(Object.assign({}, c, { sec: sec.key, gkey, wahl: null })));
+    }
+  }));
+  state = lsGet(K_DATA(CFG.meta.storage_id)) || freshState(CFG.meta.n_students || 30);
+  if (!state.students || !state.students.length) state = freshState(CFG.meta.n_students || 30);
+  state.students.forEach(s => { s.w = Object.assign({}, DEFAULT_WAHL, s.w || {}); s.p = s.p || {}; });
+  kursliste = lsGet(K_KURS(CFG.meta.kurs)) || [];
+  idx = 0;
+  ["tabKurs", "tabBewerten", "tabSichern"].forEach(t => document.getElementById(t).disabled = false);
+  document.getElementById("ptsMax").textContent = "/ " + CFG.meta.combination_max;
+  setView("kurs");
+}
+function blankStudent(i) { return { k: String(i + 1).padStart(2, "0"), p: {}, w: Object.assign({}, DEFAULT_WAHL), f: "" }; }
+function freshState(n) {
+  return { v: 2, exam: CFG.meta.storage_id, saved: null,
+           students: Array.from({ length: n }, (_, i) => blankStudent(i)) };
+}
+
+/* ---------------- Rechnen ---------------- */
+function activeFields(st) {
+  const out = new Set();
+  ALL.forEach(c => { if (!c.wahl || st.w[c.gkey] === c.wahl) out.add(c.field); });
+  return out;
+}
+function total(st) { let s = 0; activeFields(st).forEach(f => { const v = st.p[f]; if (typeof v === "number") s += v; }); return s; }
+function filled(st) { const a = activeFields(st); let n = 0; a.forEach(f => { if (typeof st.p[f] === "number") n++; }); return { n, of: a.size }; }
+function grade(p) { let hit = CFG.notenfindung[0]; for (const r of CFG.notenfindung) if (p >= r[0]) hit = r; return { np: hit[1], kurz: hit[2] }; }
+
+/* ---------------- Kursliste ---------------- */
+const PARTICLES = ["von", "van", "de", "der", "den", "zu", "zum", "del", "di", "da", "le", "la"];
+function initials(vorname, nachname) {
+  let out = "";
+  if (vorname) out += vorname.trim().charAt(0).toUpperCase();
+  (nachname || "").trim().split(/\s+/).forEach(w => {
+    if (!w) return;
+    out += PARTICLES.indexOf(w.toLowerCase()) >= 0 ? w.charAt(0).toLowerCase() : w.charAt(0).toUpperCase();
+  });
+  return out || "??";
+}
+function parseKursliste(text) {
+  const rows = [];
+  text.split(/\r?\n/).forEach(line => {
+    if (!line.trim()) return;
+    const parts = line.indexOf("\t") >= 0 ? line.split("\t") : line.split(";");
+    const nach = (parts[0] || "").trim(), vor = (parts[1] || "").trim(), mail = (parts[2] || "").trim();
+    if (!nach && !vor) return;
+    rows.push({ nach, vor, mail });
+  });
+  const seen = {};
+  rows.forEach(r => {
+    let k = initials(r.vor, r.nach);
+    if (seen[k]) { seen[k]++; k = k + seen[k]; } else { seen[k] = 1; }
+    r.k = k;
+  });
+  return rows;
+}
+function renderKursInfo() {
+  const el = document.getElementById("kursInfo");
+  el.textContent = kursliste.length
+    ? kursliste.length + " Personen gespeichert — nur auf diesem Gerät."
+    : "Noch keine Kursliste. Ohne sie arbeitest du mit Nummern und eigenen Kürzeln.";
+}
+
+/* ---------------- Kursansicht ---------------- */
+function renderKurs() {
+  const host = document.getElementById("studentList");
+  host.innerHTML = "";
+  state.students.forEach((st, i) => {
+    const pr = filled(st), pts = total(st), g = grade(pts), done = pr.of > 0 && pr.n === pr.of;
+    const person = kursliste[i];
+    const row = document.createElement("div");
+    row.className = "srow";
+    row.innerHTML = '<span class="tick ' + (done ? "full" : (pr.n ? "part" : "")) + '"></span>' +
+      '<span class="sidx">' + String(i + 1).padStart(2, "0") + '</span>' +
+      '<span class="sname"></span>' +
+      '<span class="sstate ' + (done ? "sdone" : "") + '">' +
+      (pr.n ? (done ? (pts + " · " + g.kurz) : (pr.n + "/" + pr.of)) : "offen") + '</span>';
+    const nameEl = row.querySelector(".sname");
+    if (person) {
+      nameEl.textContent = person.nach + ", " + person.vor;
+      const small = document.createElement("small"); small.textContent = st.k || person.k;
+      nameEl.appendChild(small);
+    } else { nameEl.textContent = st.k || "—"; }
+    row.addEventListener("click", () => { idx = i; setView("bewerten"); });
+    host.appendChild(row);
+  });
+  document.getElementById("countInput").value = state.students.length;
+  renderKursInfo();
+}
+
+/* ---------------- Bewertungsbogen ---------------- */
+function tapRow(st, crit) {
+  const wrap = document.createElement("div");
+  wrap.className = "taps";
+  for (let v = 0; v <= crit.max; v++) {
+    const b = document.createElement("button");
+    b.className = "tap"; b.type = "button"; b.textContent = v;
+    b.setAttribute("aria-pressed", String(st.p[crit.field] === v));
+    b.setAttribute("aria-label", crit.short + ": " + v + " von " + crit.max);
+    b.addEventListener("click", () => {
+      if (st.p[crit.field] === v) delete st.p[crit.field]; else st.p[crit.field] = v;
+      save(); renderHead();
+      wrap.querySelectorAll(".tap").forEach((x, n) => x.setAttribute("aria-pressed", String(st.p[crit.field] === n)));
+    });
+    wrap.appendChild(b);
+  }
+  return wrap;
+}
+function critBlock(st, crit) {
+  const d = document.createElement("div");
+  d.className = "crit";
+  const head = document.createElement("div");
+  head.className = "chead";
+  head.innerHTML = '<span class="cnr"></span><span class="ctext"></span><span class="cmax"></span>';
+  head.querySelector(".cnr").textContent = crit.nr || "";
+  head.querySelector(".ctext").textContent = crit.short;
+  head.querySelector(".cmax").textContent = "max " + crit.max;
+  d.appendChild(head);
+  if (crit.intro && (crit.bullets.length || crit.intro !== crit.short)) {
+    const btn = document.createElement("button");
+    btn.className = "more"; btn.type = "button"; btn.textContent = "Kriterium anzeigen";
+    const long = document.createElement("div");
+    long.className = "long"; long.hidden = true;
+    const p = document.createElement("p"); p.textContent = crit.intro; long.appendChild(p);
+    if (crit.bullets.length) {
+      const ul = document.createElement("ul");
+      crit.bullets.forEach(t => { const li = document.createElement("li"); li.textContent = t; ul.appendChild(li); });
+      long.appendChild(ul);
+    }
+    btn.onclick = () => { long.hidden = !long.hidden; btn.textContent = long.hidden ? "Kriterium anzeigen" : "Kriterium ausblenden"; };
+    d.appendChild(btn); d.appendChild(long);
+  }
+  d.appendChild(tapRow(st, crit));
+  return d;
+}
+function renderBewerten() {
+  const st = state.students[idx];
+  document.getElementById("kuerzelInput").value = st.k || "";
+  const person = kursliste[idx];
+  document.getElementById("klarname").textContent = person ? (person.nach + ", " + person.vor) : "";
+  document.getElementById("fokusInput").value = st.f || "";
+  const host = document.getElementById("sections");
+  host.innerHTML = "";
+  CFG.sections.forEach(sec => {
+    const h = document.createElement("h2");
+    h.textContent = sec.titel + " (" + sec.max + ")";
+    host.appendChild(h);
+    sec.groups.forEach((grp, gi) => {
+      const gkey = sec.key + ":" + gi;
+      const card = document.createElement("div");
+      card.className = "card";
+      const h3 = document.createElement("h3");
+      h3.textContent = grp.titel + (grp.max ? " (" + grp.max + " Punkte)" : "");
+      h3.style.marginTop = "0";
+      card.appendChild(h3);
+      if (grp.type === "wahlaufgabe") {
+        const seg = document.createElement("div");
+        seg.className = "seg";
+        grp.options.forEach(o => {
+          const b = document.createElement("button");
+          b.type = "button"; b.textContent = o.label;
+          b.setAttribute("aria-pressed", String(st.w[gkey] === o.key));
+          b.onclick = () => {
+            if (st.w[gkey] === o.key) return;
+            const cur = grp.options.find(x => x.key === st.w[gkey]);
+            const gesetzt = cur ? cur.criteria.filter(c => typeof st.p[c.field] === "number") : [];
+            if (gesetzt.length && !confirm("In " + cur.label + " stehen bereits " + gesetzt.length +
+                " Bewertungen. Beim Umschalten zählen sie nicht mehr mit. Trotzdem umschalten?")) return;
+            st.w[gkey] = o.key; save(); renderBewerten(); renderHead();
+          };
+          seg.appendChild(b);
+        });
+        card.appendChild(seg);
+        grp.options.forEach(o => { if (st.w[gkey] === o.key) o.criteria.forEach(c => card.appendChild(critBlock(st, c))); });
+        const other = grp.options.find(o => o.key !== st.w[gkey]);
+        if (other) {
+          const n = document.createElement("p");
+          n.className = "nbnote";
+          const offen = other.criteria.filter(c => typeof st.p[c.field] === "number").length;
+          n.textContent = other.label + " wird nicht bewertet (nb)." +
+            (offen ? " Achtung: dort stehen noch " + offen + " Bewertungen, die nicht zählen." : "");
+          card.appendChild(n);
+        }
+      } else {
+        grp.criteria.forEach(c => card.appendChild(critBlock(st, c)));
+      }
+      host.appendChild(card);
+    });
+  });
+  document.getElementById("prevBtn").disabled = (idx === 0);
+  document.getElementById("nextBtn").disabled = (idx >= state.students.length - 1);
+}
+
+/* ---------------- Kopfzeile ---------------- */
+function renderHead() {
+  const box = document.getElementById("scoreBox"), bw = document.getElementById("barWrap");
+  document.getElementById("ctxExam").textContent = CFG ? (CFG.meta.kurs + " · " + CFG.meta.datum) : "Arbeiten bewerten";
+  if (view !== "bewerten") {
+    box.hidden = true; bw.hidden = true;
+    document.getElementById("ctxTitle").textContent =
+      view === "klausuren" ? "Klausuren" : (view === "kurs" ? (CFG ? CFG.meta.exam_title : "Kurs") : "Sichern");
+    return;
+  }
+  const st = state.students[idx], pts = total(st), g = grade(pts), pr = filled(st);
+  const person = kursliste[idx];
+  document.getElementById("ctxTitle").textContent =
+    (idx + 1) + "/" + state.students.length + " · " + (person ? person.nach : (st.k || "—"));
+  document.getElementById("pts").textContent = pts;
+  document.getElementById("noteWord").textContent = pr.n ? g.kurz : "–";
+  document.getElementById("notePts").textContent = pr.n ? (g.np + " P.") : "–";
+  document.getElementById("bar").style.width = (pr.of ? (pr.n / pr.of * 100) : 0) + "%";
+  box.hidden = false; bw.hidden = false;
+}
+function renderExamList() {
+  const host = document.getElementById("examList");
+  host.innerHTML = "";
+  if (!catalog.length) { host.innerHTML = '<p class="muted" style="margin:0">Noch keine Klausuren hinterlegt.</p>'; return; }
+  catalog.forEach(e => {
+    const data = lsGet(K_DATA(e.id));
+    let info = "noch nicht begonnen";
+    if (data && data.students) {
+      const started = data.students.filter(s => Object.keys(s.p || {}).length).length;
+      info = started + " von " + data.students.length + " begonnen";
+    }
+    const row = document.createElement("div");
+    row.className = "srow";
+    row.innerHTML = '<span class="tick ' + (data ? "part" : "") + '"></span><span class="sname"></span>' +
+                    '<span class="sstate"></span>';
+    const n = row.querySelector(".sname");
+    n.textContent = e.titel;
+    const s = document.createElement("small"); s.textContent = e.kurs + " · " + e.datum; n.appendChild(s);
+    row.querySelector(".sstate").textContent = info;
+    row.onclick = () => loadExam(e);
+    host.appendChild(row);
+  });
+}
+function renderStorageInfo() {
+  const el = document.getElementById("storageInfo");
+  if (!el || !state) return;
+  const when = state.saved ? new Date(state.saved).toLocaleString("de-DE",
+    { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
+  const done = state.students.filter(s => { const p = filled(s); return p.of && p.n === p.of; }).length;
+  el.textContent = (storageOK ? "Automatisch gespeichert: " + when : "Automatisches Speichern nicht verfügbar.") +
+    " · " + done + " von " + state.students.length + " Arbeiten fertig.";
+}
+function flash(msg) {
+  const f = document.getElementById("flash");
+  f.textContent = msg; f.classList.add("show");
+  setTimeout(() => f.classList.remove("show"), 2200);
+}
+function exportText() {
+  return "EWH-DATEN " + JSON.stringify({
+    v: 2, exam: CFG.meta.storage_id, kurs: CFG.meta.kurs, datum: CFG.meta.datum,
+    saved: new Date().toISOString(),
+    students: state.students.map(s => ({ k: s.k, w: s.w, p: s.p, f: s.f }))
+  });
+}
+function setView(v) {
+  view = v;
+  document.getElementById("viewKlausuren").hidden = (v !== "klausuren");
+  document.getElementById("viewKurs").hidden = (v !== "kurs");
+  document.getElementById("viewBewerten").hidden = (v !== "bewerten");
+  document.getElementById("viewSichern").hidden = (v !== "sichern");
+  [["tabKlausuren", "klausuren"], ["tabKurs", "kurs"], ["tabBewerten", "bewerten"], ["tabSichern", "sichern"]]
+    .forEach(([id, name]) => document.getElementById(id).className = (v === name) ? "on" : "");
+  if (v === "klausuren") renderExamList();
+  if (v === "kurs") renderKurs();
+  if (v === "bewerten") renderBewerten();
+  if (v === "sichern") { document.getElementById("exportBox").hidden = true; renderStorageInfo(); }
+  renderHead();
+  window.scrollTo(0, 0);
+}
+
+/* ---------------- Start ---------------- */
+(function init() {
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  document.getElementById("tabKlausuren").onclick = () => setView("klausuren");
+  document.getElementById("tabKurs").onclick = () => { if (CFG) setView("kurs"); };
+  document.getElementById("tabBewerten").onclick = () => { if (CFG) setView("bewerten"); };
+  document.getElementById("tabSichern").onclick = () => { if (CFG) setView("sichern"); };
+  document.getElementById("refreshBtn").onclick = () => loadCatalog(true);
+
+  document.getElementById("prevBtn").onclick = () => { if (idx > 0) { idx--; setView("bewerten"); } };
+  document.getElementById("nextBtn").onclick = () => { if (idx < state.students.length - 1) { idx++; setView("bewerten"); } };
+  document.getElementById("kuerzelInput").addEventListener("input", e => { state.students[idx].k = e.target.value; save(); renderHead(); });
+  document.getElementById("fokusInput").addEventListener("input", e => { state.students[idx].f = e.target.value; save(); });
+
+  document.getElementById("kursApply").onclick = () => {
+    const rows = parseKursliste(document.getElementById("kursInput").value);
+    if (!rows.length) { flash("Keine Zeilen erkannt"); return; }
+    kursliste = rows;
+    lsSet(K_KURS(CFG.meta.kurs), kursliste);
+    const cur = state.students.length;
+    if (rows.length > cur) for (let i = cur; i < rows.length; i++) state.students.push(blankStudent(i));
+    if (rows.length < cur) {
+      const lost = state.students.slice(rows.length).some(s => filled(s).n > 0);
+      if (!lost) state.students = state.students.slice(0, rows.length);
+    }
+    state.students.forEach((s, i) => { if (rows[i] && (!s.k || /^\d+$/.test(s.k))) s.k = rows[i].k; });
+    document.getElementById("kursInput").value = "";
+    save(); renderKurs(); flash(rows.length + " Personen übernommen");
+  };
+  document.getElementById("kursCopy").onclick = async () => {
+    if (!kursliste.length) { flash("Noch keine Kursliste"); return; }
+    const txt = kursliste.map(r => [r.nach, r.vor, r.mail].join("\t")).join("\n");
+    try { await navigator.clipboard.writeText(txt); flash("In Zeile 3 der Excel-Spalte A einfügen"); }
+    catch (e) { document.getElementById("kursInput").value = txt; flash("Bitte von Hand kopieren"); }
+  };
+  document.getElementById("applyCount").onclick = () => {
+    const n = Math.max(1, Math.min(60, parseInt(document.getElementById("countInput").value, 10) || 1));
+    const cur = state.students.length;
+    if (n > cur) for (let i = cur; i < n; i++) state.students.push(blankStudent(i));
+    if (n < cur) {
+      const lost = state.students.slice(n).some(s => filled(s).n > 0);
+      if (lost && !confirm("In den entfernten Arbeiten stehen bereits Punkte. Wirklich löschen?")) return;
+      state.students = state.students.slice(0, n);
+      if (idx >= n) idx = n - 1;
+    }
+    save(); renderKurs(); flash("Auf " + n + " Arbeiten gesetzt");
+  };
+  document.getElementById("showBtn").onclick = () => {
+    const box = document.getElementById("exportBox");
+    box.textContent = exportText(); box.hidden = !box.hidden;
+  };
+  document.getElementById("copyBtn").onclick = async () => {
+    const txt = exportText();
+    try { await navigator.clipboard.writeText(txt); flash("Block kopiert"); }
+    catch (e) { const box = document.getElementById("exportBox"); box.textContent = txt; box.hidden = false; flash("Bitte von Hand kopieren"); }
+  };
+  document.getElementById("importBtn").onclick = () => {
+    const raw = document.getElementById("importBox").value.trim().replace(/^EWH-DATEN\s*/, "");
+    let d; try { d = JSON.parse(raw); } catch (e) { flash("Block nicht lesbar"); return; }
+    if (!d || !Array.isArray(d.students)) { flash("Block nicht lesbar"); return; }
+    if (d.exam && d.exam !== CFG.meta.storage_id) { flash("Der Block gehört zu einer anderen Klausur"); return; }
+    if (!confirm("Aktuellen Stand dieser Klausur ersetzen?")) return;
+    state.students = d.students.map(s => ({ k: s.k || "", p: s.p || {}, w: Object.assign({}, DEFAULT_WAHL, s.w || {}), f: s.f || "" }));
+    idx = 0; save(); document.getElementById("importBox").value = "";
+    setView("kurs"); flash("Stand übernommen");
+  };
+  document.getElementById("resetBtn").onclick = () => {
+    if (!confirm("Wirklich alle Punkte dieser Klausur löschen?")) return;
+    const n = state.students.length;
+    state = freshState(n); idx = 0; save(); setView("kurs"); flash("Zurückgesetzt");
+  };
+  loadCatalog(false);
+})();
+</script>
+</body>
+</html>
