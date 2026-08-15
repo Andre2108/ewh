@@ -1,1 +1,11 @@
-{ "klausuren": [] }
+{
+ "klausuren": [
+  {
+   "id": "ewh-visions-of-the-future-e-lk-q1",
+   "titel": "Written Exam No. 4 – Visions of the future",
+   "kurs": "E LK Q1",
+   "datum": "18.08.2026",
+   "file": "klausuren/ewh-visions-of-the-future-e-lk-q1.json"
+  }
+ ]
+}
