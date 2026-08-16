@@ -26,7 +26,11 @@
    "titel": "Vorabitur-Klausur Nr. 3 – Nigeria (Sozaboy)",
    "kurs": "E LK Q2",
    "datum": "23.02.2023",
-   "file": "klausuren/ewh-nigeria-e-lk-q2.json"
+   "file": "klausuren/ewh-nigeria-e-lk-q2.json",
+   "status": "fertig",
+   "fertig_am": "2026-08-16",
+   "bewertet": 4,
+   "fehlend": 1
   }
  ]
 }
