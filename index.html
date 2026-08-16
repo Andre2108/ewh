@@ -98,6 +98,35 @@ pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--pape
 .alert{background:#fff4e6;border:1px solid #f0c48a;color:#7c4a06;border-radius:10px;
   padding:11px 13px;font-size:13px;line-height:1.5;margin-bottom:12px}
 .privacy{font-size:12px;color:var(--soft);line-height:1.5;margin:10px 0 0}
+/* Fortschritt je Klausur in der Uebersicht */
+.pbar{height:5px;background:var(--line);border-radius:3px;margin-top:8px;overflow:hidden;display:flex;flex-basis:100%}
+.pbar>i{display:block;height:100%}
+.pbar>i.done{background:var(--ok)}
+.pbar>i.part{background:var(--warn)}
+.pbar>i.miss{background:#f0a8a8;width:auto;border:0;border-radius:0;height:100%}
+.srow.stack{flex-wrap:wrap}
+.sstate small{display:block;font-family:var(--mono);font-size:11px;color:var(--soft);font-weight:400}
+/* Farbhinterlegung: Blaustufen je Teilaufgabe, Gruen fuer die Darstellungsleistung */
+.card.g-i0{background:#f4f8fd}
+.card.g-i1{background:#e8f1fb}
+.card.g-i2{background:#dbe9f7}
+.card.g-i3{background:#cfe1f4}
+.card.g-d0{background:#f1f8f1}
+.card.g-d1{background:#e7f3e7}
+.card.g-d2{background:#ddeedd}
+.long b{font-weight:680}
+/* Fehlende Arbeiten */
+.srow.absent .sname{text-decoration:line-through;color:var(--soft)}
+.missbtn{min-width:44px;height:36px;border:1px solid var(--line);background:var(--card);
+  border-radius:9px;flex:none;cursor:pointer;font-size:13px;color:var(--soft)}
+.missbtn[aria-pressed="true"]{background:#fde8e8;border-color:#f0a8a8;color:#b91c1c;font-weight:620}
+/* Notenkasten ueber „Naechste Arbeit" */
+.gradebox{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:14px;margin-top:16px;text-align:center}
+.gradebox .lbl{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--soft)}
+.gradebox .val{font-size:27px;font-weight:700;color:#c00000;margin-top:5px;line-height:1.1}
+.gradebox .sub{font-family:var(--mono);font-size:13px;color:var(--soft);margin-top:4px}
+details.opt summary{cursor:pointer;font-size:14px;color:var(--mark);padding:4px 0}
 [hidden]{display:none !important}
 button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--mark);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{transition:none !important}}
@@ -120,32 +149,41 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   <div class="alert" id="storageAlert" hidden></div>
 
   <section id="viewKlausuren">
-    <h2>Verfügbare Klausuren</h2>
+    <h2>Verfügbare Klausuren und Klassenarbeiten</h2>
     <div class="card" id="examList"><p class="muted" style="margin:0">Lade Klausuren…</p></div>
+    <div id="doneWrap" hidden>
+      <h2>Fertig korrigiert</h2>
+      <div class="card" id="doneList"></div>
+    </div>
     <div class="row"><button class="btn quiet" id="refreshBtn">Liste aktualisieren</button></div>
     <p class="privacy">Punkte und Kursliste liegen ausschließlich auf diesem Gerät. Übertragen wird nur, was du selbst über „Sichern“ kopierst — Kürzel und Punkte, keine Namen.</p>
   </section>
 
   <section id="viewKurs" hidden>
-    <h2>Klausuren im Kurs</h2>
+    <h2>Arbeiten im Kurs</h2>
     <div class="card" id="studentList"></div>
-    <h2>Kursliste</h2>
+    <p class="muted" style="margin:2px 0 0">Mit <b>fehlt</b> markierst du, wer nicht mitgeschrieben hat: zählt nicht als offen, bleibt in der Excel-Tabelle hellrot und leer.</p>
+    <h2>Anzahl und Fehlende</h2>
     <div class="card">
-      <p class="muted" style="margin:0 0 10px">Eine Zeile je Person: <b>Nachname · Vorname · E-Mail</b>, getrennt durch Tabulator oder Semikolon. Direkt aus Excel kopierbar. Bleibt auf diesem Gerät.</p>
-      <textarea id="kursInput" placeholder="Sielberg;Anna;anna.sielberg@…"></textarea>
-      <div class="row" style="margin-top:10px">
-        <button class="btn" id="kursApply">Kursliste übernehmen</button>
-        <button class="btn quiet" id="kursCopy">Für Excel kopieren</button>
-      </div>
-      <p class="muted" id="kursInfo" style="margin:11px 0 0"></p>
-    </div>
-    <h2>Ohne Kursliste</h2>
-    <div class="card">
-      <p class="muted" style="margin:0 0 10px">Anzahl der Klausuren festlegen; Kürzel trägst du dann je Arbeit von Hand ein.</p>
       <div class="row">
         <input type="number" id="countInput" min="1" max="60" style="flex:1;min-width:110px" inputmode="numeric">
         <button class="btn" id="applyCount">Anzahl übernehmen</button>
       </div>
+      <p class="muted" id="missInfo" style="margin:11px 0 0"></p>
+    </div>
+    <h2>Kursliste</h2>
+    <div class="card">
+      <button class="btn quiet" id="kursCopy" style="width:100%">Für Excel kopieren</button>
+      <p class="muted" style="margin:11px 0 0">Fügt die Namen ab Zelle <b>B3</b> ein — Spalte A bleibt das Kürzel, damit du Zeile für Zeile prüfen kannst, ob beides zusammengehört.</p>
+      <details class="opt" style="margin-top:11px">
+        <summary>Kursliste hinterlegen (optional)</summary>
+        <p class="muted" style="margin:9px 0 10px">Eine Zeile je Person: <b>Nachname · Vorname · E-Mail</b>, getrennt durch Tabulator oder Semikolon. Bleibt auf diesem Gerät.</p>
+        <textarea id="kursInput" placeholder="Sielberg;Anna;anna.sielberg@…"></textarea>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="kursApply">Kursliste übernehmen</button>
+        </div>
+        <p class="muted" id="kursInfo" style="margin:11px 0 0"></p>
+      </details>
     </div>
   </section>
 
@@ -161,6 +199,11 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       <p class="muted" style="margin:0 0 9px">Diktieren geht: Mikrofon auf der Tastatur antippen.</p>
       <textarea id="fokusInput" style="font-family:inherit;font-size:16px" placeholder="z. B. Sprachrichtigkeit (Grammatik), Belegtechnik"></textarea>
     </div>
+    <div class="gradebox" id="gradeBox">
+      <div class="lbl">Note dieser Arbeit</div>
+      <div class="val" id="gradeVal">–</div>
+      <div class="sub" id="gradeSub">noch keine Bewertung</div>
+    </div>
     <div class="row" style="margin-top:14px">
       <button class="btn" id="prevBtn">← Zurück</button>
       <button class="btn primary" id="nextBtn" style="flex:1">Nächste Arbeit →</button>
@@ -168,6 +211,12 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   </section>
 
   <section id="viewSichern" hidden>
+    <h2>Korrektur abschließen</h2>
+    <div class="card">
+      <p class="muted" style="margin:0 0 11px" id="doneHint"></p>
+      <button class="btn" id="doneBtn" style="width:100%">Alle Arbeiten korrigiert</button>
+      <p class="muted" style="margin:11px 0 0">Der Vermerk wandert in die Sicherungsdatei. Nach dem Auswertungslauf erscheint die Klausur oben unter „Fertig korrigiert".</p>
+    </div>
     <h2>Stand sichern</h2>
     <div class="card">
       <p class="muted" style="margin:0 0 11px">Enthält Kürzel und Punkte — keine Namen. Daraus entstehen die gefüllte Excel-Datei und die Seriendruckvorlage.</p>
@@ -281,16 +330,17 @@ function activate(cfg) {
   }));
   state = lsGet(K_DATA(CFG.meta.storage_id)) || freshState(CFG.meta.n_students || 30);
   if (!state.students || !state.students.length) state = freshState(CFG.meta.n_students || 30);
-  state.students.forEach(s => { s.w = Object.assign({}, DEFAULT_WAHL, s.w || {}); s.p = s.p || {}; });
+  state.students.forEach(s => { s.w = Object.assign({}, DEFAULT_WAHL, s.w || {}); s.p = s.p || {}; s.a = !!s.a; });
   kursliste = lsGet(K_KURS(CFG.meta.kurs)) || [];
   idx = 0;
   ["tabKurs", "tabBewerten", "tabSichern"].forEach(t => document.getElementById(t).disabled = false);
   document.getElementById("ptsMax").textContent = "/ " + CFG.meta.combination_max;
   setView("kurs");
 }
-function blankStudent(i) { return { k: String(i + 1).padStart(2, "0"), p: {}, w: Object.assign({}, DEFAULT_WAHL), f: "" }; }
+function blankStudent(i) { return { k: String(i + 1).padStart(2, "0"), p: {}, w: Object.assign({}, DEFAULT_WAHL), f: "", a: false }; }
 function freshState(n) {
   return { v: 2, exam: CFG.meta.storage_id, saved: null,
+           abgeschlossen: false, abgeschlossen_am: null,
            students: Array.from({ length: n }, (_, i) => blankStudent(i)) };
 }
 
@@ -301,7 +351,40 @@ function activeFields(st) {
   return out;
 }
 function total(st) { let s = 0; activeFields(st).forEach(f => { const v = st.p[f]; if (typeof v === "number") s += v; }); return s; }
-function filled(st) { const a = activeFields(st); let n = 0; a.forEach(f => { if (typeof st.p[f] === "number") n++; }); return { n, of: a.size }; }
+function filled(st) {
+  if (st.a) return { n: 0, of: 0 };                 // fehlt: zaehlt weder als offen noch als fertig
+  const a = activeFields(st); let n = 0;
+  a.forEach(f => { if (typeof st.p[f] === "number") n++; });
+  return { n, of: a.size };
+}
+function missing() { return state.students.filter(s => s.a).length; }
+function activeCount(cfg, st) {
+  // Wie viele Kriterien zaehlen bei dieser Arbeit? Wahlaufgabe: nur die gewaehlte Seite.
+  let n = 0;
+  cfg.sections.forEach(sec => sec.groups.forEach((grp, gi) => {
+    if (grp.type === "wahlaufgabe") {
+      const pick = (st.w && st.w[sec.key + ":" + gi]) || grp.options[0].key;
+      const o = grp.options.find(x => x.key === pick) || grp.options[0];
+      n += o.criteria.length;
+    } else { n += grp.criteria.length; }
+  }));
+  return n;
+}
+function examProgress(entry) {
+  const data = lsGet(K_DATA(entry.id));
+  if (!data || !data.students || !data.students.length) return null;
+  const cfg = lsGet(K_CFG(entry.id));
+  let fehlend = 0, fertig = 0, begonnen = 0;
+  data.students.forEach(st => {
+    if (st.a) { fehlend++; return; }
+    const gesetzt = Object.keys(st.p || {}).filter(k => typeof st.p[k] === "number").length;
+    if (!gesetzt) return;
+    const soll = cfg ? activeCount(cfg, st) : 0;
+    if (soll && gesetzt >= soll) fertig++; else begonnen++;
+  });
+  const gesamt = data.students.length;
+  return { gesamt, fehlend, fertig, begonnen, offen: gesamt - fehlend - fertig - begonnen };
+}
 function grade(p) { let hit = CFG.notenfindung[0]; for (const r of CFG.notenfindung) if (p >= r[0]) hit = r; return { np: hit[1], kurz: hit[2] }; }
 
 /* ---------------- Kursliste ---------------- */
@@ -347,12 +430,20 @@ function renderKurs() {
     const pr = filled(st), pts = total(st), g = grade(pts), done = pr.of > 0 && pr.n === pr.of;
     const person = kursliste[i];
     const row = document.createElement("div");
-    row.className = "srow";
-    row.innerHTML = '<span class="tick ' + (done ? "full" : (pr.n ? "part" : "")) + '"></span>' +
+    row.className = "srow" + (st.a ? " absent" : "");
+    row.innerHTML = '<span class="tick ' + (st.a ? "" : (done ? "full" : (pr.n ? "part" : ""))) + '"></span>' +
       '<span class="sidx">' + String(i + 1).padStart(2, "0") + '</span>' +
       '<span class="sname"></span>' +
       '<span class="sstate ' + (done ? "sdone" : "") + '">' +
-      (pr.n ? (done ? (pts + " · " + g.kurz) : (pr.n + "/" + pr.of)) : "offen") + '</span>';
+      (st.a ? "fehlt" : (pr.n ? (done ? (pts + " · " + g.kurz) : (pr.n + "/" + pr.of)) : "offen")) + '</span>' +
+      '<button class="missbtn" type="button" aria-pressed="' + (st.a ? "true" : "false") + '">fehlt</button>';
+    const mb = row.querySelector(".missbtn");
+    mb.title = "Hat nicht mitgeschrieben";
+    mb.addEventListener("click", ev => {
+      ev.stopPropagation();
+      if (!st.a && filled(st).n && !confirm("In dieser Arbeit stehen bereits Punkte. Trotzdem als fehlend markieren?")) return;
+      st.a = !st.a; save(); renderKurs(); renderHead();
+    });
     const nameEl = row.querySelector(".sname");
     if (person) {
       nameEl.textContent = person.nach + ", " + person.vor;
@@ -363,6 +454,10 @@ function renderKurs() {
     host.appendChild(row);
   });
   document.getElementById("countInput").value = state.students.length;
+  const fehlt = missing();
+  const fertigN = state.students.filter(s => { const p = filled(s); return p.of && p.n === p.of; }).length;
+  document.getElementById("missInfo").textContent =
+    state.students.length + " Arbeiten · " + fertigN + " fertig · " + fehlt + " fehlend";
   renderKursInfo();
 }
 
@@ -384,6 +479,16 @@ function tapRow(st, crit) {
   }
   return wrap;
 }
+function escHtml(t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+// Hebt den Kern jedes Stichpunkts hervor: alles vor dem ersten Doppelpunkt,
+// sonst die ersten drei Woerter — damit beim Ueberfliegen etwas haengen bleibt.
+function bulletHtml(t) {
+  const i = t.indexOf(": ");
+  if (i > 0 && i <= 70) return "<b>" + escHtml(t.slice(0, i)) + "</b>" + escHtml(t.slice(i));
+  const w = t.split(" ");
+  if (w.length <= 3) return "<b>" + escHtml(t) + "</b>";
+  return "<b>" + escHtml(w.slice(0, 3).join(" ")) + "</b> " + escHtml(w.slice(3).join(" "));
+}
 function critBlock(st, crit) {
   const d = document.createElement("div");
   d.className = "crit";
@@ -402,7 +507,7 @@ function critBlock(st, crit) {
     const p = document.createElement("p"); p.textContent = crit.intro; long.appendChild(p);
     if (crit.bullets.length) {
       const ul = document.createElement("ul");
-      crit.bullets.forEach(t => { const li = document.createElement("li"); li.textContent = t; ul.appendChild(li); });
+      crit.bullets.forEach(t => { const li = document.createElement("li"); li.innerHTML = bulletHtml(t); ul.appendChild(li); });
       long.appendChild(ul);
     }
     btn.onclick = () => { long.hidden = !long.hidden; btn.textContent = long.hidden ? "Kriterium anzeigen" : "Kriterium ausblenden"; };
@@ -426,7 +531,8 @@ function renderBewerten() {
     sec.groups.forEach((grp, gi) => {
       const gkey = sec.key + ":" + gi;
       const card = document.createElement("div");
-      card.className = "card";
+      // Blaustufen je Teilaufgabe, Gruentoene fuer die Darstellungsleistung
+      card.className = "card " + (sec.art === "darstellung" ? "g-d" + (gi % 3) : "g-i" + (gi % 4));
       const h3 = document.createElement("h3");
       h3.textContent = grp.titel + (grp.max ? " (" + grp.max + " Punkte)" : "");
       h3.style.marginTop = "0";
@@ -465,8 +571,21 @@ function renderBewerten() {
       host.appendChild(card);
     });
   });
+  renderGradeBox();
   document.getElementById("prevBtn").disabled = (idx === 0);
   document.getElementById("nextBtn").disabled = (idx >= state.students.length - 1);
+}
+
+function renderGradeBox() {
+  const st = state.students[idx], pr = filled(st), pts = total(st), g = grade(pts);
+  const val = document.getElementById("gradeVal"), sub = document.getElementById("gradeSub");
+  if (st.a) {
+    val.textContent = "fehlt"; sub.textContent = "nicht mitgeschrieben"; return;
+  }
+  if (!pr.n) { val.textContent = "–"; sub.textContent = "noch keine Bewertung"; return; }
+  val.textContent = g.kurz + " (" + g.np + " Punkte)";
+  sub.textContent = pts + " von " + CFG.meta.combination_max + " Punkten · " +
+                    (pr.n === pr.of ? "vollständig" : pr.n + " von " + pr.of + " Kriterien");
 }
 
 /* ---------------- Kopfzeile ---------------- */
@@ -493,24 +612,65 @@ function renderExamList() {
   const host = document.getElementById("examList");
   host.innerHTML = "";
   if (!catalog.length) { host.innerHTML = '<p class="muted" style="margin:0">Noch keine Klausuren hinterlegt.</p>'; return; }
-  catalog.forEach(e => {
-    const data = lsGet(K_DATA(e.id));
-    let info = "noch nicht begonnen";
-    if (data && data.students) {
-      const started = data.students.filter(s => Object.keys(s.p || {}).length).length;
-      info = started + " von " + data.students.length + " begonnen";
-    }
-    const row = document.createElement("div");
-    row.className = "srow";
-    row.innerHTML = '<span class="tick ' + (data ? "part" : "") + '"></span><span class="sname"></span>' +
-                    '<span class="sstate"></span>';
-    const n = row.querySelector(".sname");
-    n.textContent = e.titel;
-    const s = document.createElement("small"); s.textContent = e.kurs + " · " + e.datum; n.appendChild(s);
-    row.querySelector(".sstate").textContent = info;
-    row.onclick = () => loadExam(e);
-    host.appendChild(row);
+  const offen = catalog.filter(e => e.status !== "fertig");
+  const fertig = catalog.filter(e => e.status === "fertig");
+  if (!offen.length) host.innerHTML = '<p class="muted" style="margin:0">Alles korrigiert.</p>';
+  offen.forEach(e => host.appendChild(examRow(e)));
+
+  const wrap = document.getElementById("doneWrap"), dl = document.getElementById("doneList");
+  dl.innerHTML = "";
+  wrap.hidden = !fertig.length;
+  // nach Stufe/Kurs gruppiert, damit man auf einen Blick sieht, was ein Kurs schon hinter sich hat
+  const kurse = [];
+  fertig.forEach(e => { if (kurse.indexOf(e.kurs) < 0) kurse.push(e.kurs); });
+  kurse.sort();
+  kurse.forEach(k => {
+    const h = document.createElement("h3");
+    h.textContent = k; h.style.margin = "14px 0 4px";
+    if (!dl.childNodes.length) h.style.marginTop = "0";
+    dl.appendChild(h);
+    fertig.filter(e => e.kurs === k).forEach(e => dl.appendChild(examRow(e, true)));
   });
+}
+function examRow(e, istFertig) {
+  const pr = examProgress(e);
+  const row = document.createElement("div");
+  row.className = "srow stack";
+  row.innerHTML = '<span class="tick ' + (istFertig ? "full" : (pr && (pr.fertig || pr.begonnen) ? "part" : "")) + '"></span>' +
+                  '<span class="sname"></span><span class="sstate"></span>';
+  const n = row.querySelector(".sname");
+  n.textContent = e.titel;
+  const s = document.createElement("small");
+  s.textContent = e.kurs + " · " + e.datum + (istFertig && e.fertig_am ? " · fertig " + e.fertig_am : "");
+  n.appendChild(s);
+
+  const st = row.querySelector(".sstate");
+  if (istFertig) {
+    st.className = "sstate sdone";
+    st.textContent = (e.bewertet != null ? e.bewertet + " bewertet" : "fertig") +
+                     (e.fehlend ? " · " + e.fehlend + " fehlend" : "");
+  } else if (!pr) {
+    st.textContent = "noch nicht begonnen";
+  } else {
+    st.innerHTML = "";
+    st.appendChild(document.createTextNode(pr.fertig + " fertig"));
+    const sm = document.createElement("small");
+    sm.textContent = pr.begonnen + " begonnen · " + pr.offen + " offen" +
+                     (pr.fehlend ? " · " + pr.fehlend + " fehlend" : "");
+    st.appendChild(sm);
+    const bar = document.createElement("div");
+    bar.className = "pbar";
+    const teil = (cls, anz) => {
+      if (!anz) return;
+      const i = document.createElement("i");
+      i.className = cls; i.style.width = (anz / pr.gesamt * 100) + "%";
+      bar.appendChild(i);
+    };
+    teil("done", pr.fertig); teil("part", pr.begonnen); teil("miss", pr.fehlend);
+    row.appendChild(bar);
+  }
+  row.onclick = () => loadExam(e);
+  return row;
 }
 function renderStorageInfo() {
   const el = document.getElementById("storageInfo");
@@ -521,6 +681,22 @@ function renderStorageInfo() {
   el.textContent = (storageOK ? "Automatisch gespeichert: " + when : "Automatisches Speichern nicht verfügbar.") +
     " · " + done + " von " + state.students.length + " Arbeiten fertig.";
 }
+function renderDoneBox() {
+  const hint = document.getElementById("doneHint"), btn = document.getElementById("doneBtn");
+  const offen = state.students.filter(s => { const p = filled(s); return !s.a && p.of && p.n < p.of; }).length;
+  const nichts = state.students.filter(s => { const p = filled(s); return !s.a && p.of && !p.n; }).length;
+  if (state.abgeschlossen) {
+    hint.textContent = "Als abgeschlossen markiert" +
+      (state.abgeschlossen_am ? " am " + new Date(state.abgeschlossen_am).toLocaleDateString("de-DE") : "") +
+      ". Jetzt „An PC senden“ antippen.";
+    btn.textContent = "Markierung wieder aufheben";
+  } else {
+    hint.textContent = offen
+      ? offen + " Arbeit(en) noch nicht vollständig bewertet" + (nichts ? ", davon " + nichts + " noch gar nicht" : "") + "."
+      : "Alle Arbeiten sind vollständig bewertet.";
+    btn.textContent = "Alle Arbeiten korrigiert";
+  }
+}
 function flash(msg) {
   const f = document.getElementById("flash");
   f.textContent = msg; f.classList.add("show");
@@ -530,7 +706,9 @@ function exportText() {
   return "EWH-DATEN " + JSON.stringify({
     v: 2, exam: CFG.meta.storage_id, kurs: CFG.meta.kurs, datum: CFG.meta.datum,
     saved: new Date().toISOString(),
-    students: state.students.map(s => ({ k: s.k, w: s.w, p: s.p, f: s.f }))
+    abgeschlossen: !!state.abgeschlossen,
+    abgeschlossen_am: state.abgeschlossen_am || null,
+    students: state.students.map(s => ({ k: s.k, w: s.w, p: s.p, f: s.f, abwesend: !!s.a }))
   });
 }
 // Dateiname mit Zeitstempel: ein zweiter Versand überschreibt nie den ersten.
@@ -551,7 +729,7 @@ function setView(v) {
   if (v === "klausuren") renderExamList();
   if (v === "kurs") renderKurs();
   if (v === "bewerten") renderBewerten();
-  if (v === "sichern") { document.getElementById("exportBox").hidden = true; renderStorageInfo(); }
+  if (v === "sichern") { document.getElementById("exportBox").hidden = true; renderStorageInfo(); renderDoneBox(); }
   renderHead();
   window.scrollTo(0, 0);
 }
@@ -586,10 +764,23 @@ function setView(v) {
     save(); renderKurs(); flash(rows.length + " Personen übernommen");
   };
   document.getElementById("kursCopy").onclick = async () => {
-    if (!kursliste.length) { flash("Noch keine Kursliste"); return; }
+    if (!kursliste.length) { flash("Noch keine Kursliste hinterlegt"); return; }
     const txt = kursliste.map(r => [r.nach, r.vor, r.mail].join("\t")).join("\n");
-    try { await navigator.clipboard.writeText(txt); flash("In Zeile 3 der Excel-Spalte A einfügen"); }
+    try { await navigator.clipboard.writeText(txt); flash("In Zelle B3 der Excel-Datei einfügen"); }
     catch (e) { document.getElementById("kursInput").value = txt; flash("Bitte von Hand kopieren"); }
+  };
+  document.getElementById("doneBtn").onclick = () => {
+    if (!state.abgeschlossen) {
+      const offen = state.students.filter(s => { const p = filled(s); return !s.a && p.of && p.n < p.of; }).length;
+      if (offen && !confirm(offen + " Arbeit(en) sind noch nicht vollständig bewertet. Trotzdem als fertig markieren?")) return;
+      state.abgeschlossen = true;
+      state.abgeschlossen_am = new Date().toISOString();
+      flash("Als fertig korrigiert markiert");
+    } else {
+      state.abgeschlossen = false; state.abgeschlossen_am = null;
+      flash("Markierung aufgehoben");
+    }
+    save(); renderDoneBox();
   };
   document.getElementById("applyCount").onclick = () => {
     const n = Math.max(1, Math.min(60, parseInt(document.getElementById("countInput").value, 10) || 1));
@@ -632,7 +823,9 @@ function setView(v) {
     if (!d || !Array.isArray(d.students)) { flash("Block nicht lesbar"); return; }
     if (d.exam && d.exam !== CFG.meta.storage_id) { flash("Der Block gehört zu einer anderen Klausur"); return; }
     if (!confirm("Aktuellen Stand dieser Klausur ersetzen?")) return;
-    state.students = d.students.map(s => ({ k: s.k || "", p: s.p || {}, w: Object.assign({}, DEFAULT_WAHL, s.w || {}), f: s.f || "" }));
+    state.students = d.students.map(s => ({ k: s.k || "", p: s.p || {}, w: Object.assign({}, DEFAULT_WAHL, s.w || {}), f: s.f || "", a: !!s.abwesend }));
+    state.abgeschlossen = !!d.abgeschlossen;
+    state.abgeschlossen_am = d.abgeschlossen_am || null;
     idx = 0; save(); document.getElementById("importBox").value = "";
     setView("kurs"); flash("Stand übernommen");
   };
