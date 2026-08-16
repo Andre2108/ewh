@@ -170,11 +170,13 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   <section id="viewSichern" hidden>
     <h2>Stand sichern</h2>
     <div class="card">
-      <p class="muted" style="margin:0 0 11px">Enthält Kürzel und Punkte — keine Namen. In den Chat einfügen; daraus entstehen die gefüllte Excel-Datei und die Seriendruckvorlage.</p>
+      <p class="muted" style="margin:0 0 11px">Enthält Kürzel und Punkte — keine Namen. Daraus entstehen die gefüllte Excel-Datei und die Seriendruckvorlage.</p>
       <div class="row" style="margin-bottom:11px">
-        <button class="btn primary" id="copyBtn">Block kopieren</button>
+        <button class="btn primary" id="sendBtn">An PC senden</button>
+        <button class="btn" id="copyBtn">Block kopieren</button>
         <button class="btn" id="showBtn">Anzeigen</button>
       </div>
+      <p class="muted" style="margin:0">„An PC senden" öffnet das Teilen-Menü — dort OneDrive wählen und im Ordner <b>Klausuren-Daten</b> ablegen. Die Datei liegt dann von selbst auf dem PC.</p>
       <pre id="exportBox" hidden></pre>
     </div>
     <h2>Stand übernehmen</h2>
@@ -531,6 +533,13 @@ function exportText() {
     students: state.students.map(s => ({ k: s.k, w: s.w, p: s.p, f: s.f }))
   });
 }
+// Dateiname mit Zeitstempel: ein zweiter Versand überschreibt nie den ersten.
+function exportFilename() {
+  const d = new Date(), p = n => String(n).padStart(2, "0");
+  return "EWH-Daten_" + CFG.meta.storage_id + "_"
+       + d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate())
+       + "_" + p(d.getHours()) + p(d.getMinutes()) + ".txt";
+}
 function setView(v) {
   view = v;
   document.getElementById("viewKlausuren").hidden = (v !== "klausuren");
@@ -602,6 +611,20 @@ function setView(v) {
     const txt = exportText();
     try { await navigator.clipboard.writeText(txt); flash("Block kopiert"); }
     catch (e) { const box = document.getElementById("exportBox"); box.textContent = txt; box.hidden = false; flash("Bitte von Hand kopieren"); }
+  };
+  document.getElementById("sendBtn").onclick = async () => {
+    const name = exportFilename(), txt = exportText();
+    const datei = new File([txt], name, { type: "text/plain" });
+    if (navigator.canShare && navigator.canShare({ files: [datei] })) {
+      try { await navigator.share({ files: [datei], title: name }); flash("Gesendet"); return; }
+      catch (e) { if (e && e.name === "AbortError") return; }   // Nutzer hat abgebrochen
+    }
+    const url = URL.createObjectURL(new Blob([txt], { type: "text/plain" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    flash("Als Datei gespeichert — bitte nach OneDrive verschieben");
   };
   document.getElementById("importBtn").onclick = () => {
     const raw = document.getElementById("importBox").value.trim().replace(/^EWH-DATEN\s*/, "");
