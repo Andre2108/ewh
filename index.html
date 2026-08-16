@@ -126,6 +126,8 @@ pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--pape
 .gradebox .lbl{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--soft)}
 .gradebox .val{font-size:27px;font-weight:700;color:#c00000;margin-top:5px;line-height:1.1}
 .gradebox .sub{font-family:var(--mono);font-size:13px;color:var(--soft);margin-top:4px}
+.gradebox .next{font-family:var(--mono);font-size:13px;color:var(--mark);margin-top:6px;
+  background:var(--paper);border-radius:8px;padding:6px 10px;display:inline-block}
 details.opt summary{cursor:pointer;font-size:14px;color:var(--mark);padding:4px 0}
 [hidden]{display:none !important}
 button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--mark);outline-offset:2px}
@@ -203,6 +205,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       <div class="lbl">Note dieser Arbeit</div>
       <div class="val" id="gradeVal">–</div>
       <div class="sub" id="gradeSub">noch keine Bewertung</div>
+      <div class="next" id="gradeNext" hidden></div>
     </div>
     <div class="row" style="margin-top:14px">
       <button class="btn" id="prevBtn">← Zurück</button>
@@ -472,7 +475,9 @@ function tapRow(st, crit) {
     b.setAttribute("aria-label", crit.short + ": " + v + " von " + crit.max);
     b.addEventListener("click", () => {
       if (st.p[crit.field] === v) delete st.p[crit.field]; else st.p[crit.field] = v;
-      save(); renderHead();
+      // renderGradeBox() MUSS hier mitlaufen: der Kasten ueber „Naechste Arbeit"
+      // haengt sonst hinterher, weil er nur beim Neuaufbau der Seite geschrieben wird.
+      save(); renderHead(); renderGradeBox();
       wrap.querySelectorAll(".tap").forEach((x, n) => x.setAttribute("aria-pressed", String(st.p[crit.field] === n)));
     });
     wrap.appendChild(b);
@@ -579,6 +584,8 @@ function renderBewerten() {
 function renderGradeBox() {
   const st = state.students[idx], pr = filled(st), pts = total(st), g = grade(pts);
   const val = document.getElementById("gradeVal"), sub = document.getElementById("gradeSub");
+  const nx = document.getElementById("gradeNext");
+  nx.hidden = true;
   if (st.a) {
     val.textContent = "fehlt"; sub.textContent = "nicht mitgeschrieben"; return;
   }
@@ -586,6 +593,18 @@ function renderGradeBox() {
   val.textContent = g.kurz + " (" + g.np + " Punkte)";
   sub.textContent = pts + " von " + CFG.meta.combination_max + " Punkten · " +
                     (pr.n === pr.of ? "vollständig" : pr.n + " von " + pr.of + " Kriterien");
+  // Grenzfall-Hinweis: Abstand nach oben und nach unten. Genau da, wo man
+  // ohnehin lange ueberlegt, steht damit sofort, worum es geht.
+  const rows = CFG.notenfindung;
+  let i = 0;
+  for (let k = 0; k < rows.length; k++) if (pts >= rows[k][0]) i = k;
+  const hoch = rows[i + 1], puffer = pts - rows[i][0];
+  const teile = [];
+  if (hoch) teile.push((hoch[0] - pts) + " " + (hoch[0] - pts === 1 ? "Punkt" : "Punkte") + " bis " + hoch[2]);
+  else teile.push("Höchststufe erreicht");
+  if (i > 0) teile.push(puffer + " über " + rows[i][2]);
+  nx.textContent = teile.join("  ·  ");
+  nx.hidden = false;
 }
 
 /* ---------------- Kopfzeile ---------------- */
