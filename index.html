@@ -356,7 +356,22 @@ function activeFields(st) {
   ALL.forEach(c => { if (!c.wahl || st.w[c.gkey] === c.wahl) out.add(c.field); });
   return out;
 }
-function total(st) { let s = 0; activeFields(st).forEach(f => { const v = st.p[f]; if (typeof v === "number") s += v; }); return s; }
+function total(st) {
+  // Je Abschnitt gedeckelt: Reservezeilen ersetzen fehlende Punkte, treiben die
+  // Summe aber nie ueber das Maximum des Abschnitts hinaus.
+  const aktiv = activeFields(st);
+  let gesamt = 0;
+  CFG.sections.forEach(sec => {
+    let teil = 0;
+    ALL.forEach(c => {
+      if (c.sec !== sec.key || !aktiv.has(c.field)) return;
+      const v = st.p[c.field];
+      if (typeof v === "number") teil += v;
+    });
+    gesamt += (sec.max ? Math.min(teil, sec.max) : teil);
+  });
+  return gesamt;
+}
 function filled(st) {
   if (st.a) return { n: 0, of: 0 };                 // fehlt: zaehlt weder als offen noch als fertig
   const a = activeFields(st); let n = 0;
@@ -505,7 +520,8 @@ function critBlock(st, crit) {
   head.innerHTML = '<span class="cnr"></span><span class="ctext"></span><span class="cmax"></span>';
   head.querySelector(".cnr").textContent = crit.nr || "";
   head.querySelector(".ctext").textContent = crit.short;
-  head.querySelector(".cmax").textContent = "max " + crit.max;
+  // Reservezeile: in den amtlichen Vorlagen steht die Punktzahl in Klammern
+  head.querySelector(".cmax").textContent = (crit.reserve ? "Reserve max " : "max ") + crit.max;
   d.appendChild(head);
   if (crit.intro && (crit.bullets.length || crit.intro !== crit.short)) {
     const btn = document.createElement("button");
