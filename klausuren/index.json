@@ -20,6 +20,13 @@
    "kurs": "E LK Q2",
    "datum": "16.08.2026",
    "file": "klausuren/ewh-gender-identity-e-lk-q2.json"
+  },
+  {
+   "id": "ewh-nigeria-e-lk-q2",
+   "titel": "Vorabitur-Klausur Nr. 3 – Nigeria (Sozaboy)",
+   "kurs": "E LK Q2",
+   "datum": "23.02.2023",
+   "file": "klausuren/ewh-nigeria-e-lk-q2.json"
   }
  ]
 }
