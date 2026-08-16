@@ -13,6 +13,13 @@
    "kurs": "E LK Q1",
    "datum": "22.02.2022",
    "file": "klausuren/ewh-plastic-oceans-e-lk-q1.json"
+  },
+  {
+   "id": "ewh-gender-identity-e-lk-q2",
+   "titel": "Written Exam No. 1 – Gender & Identity",
+   "kurs": "E LK Q2",
+   "datum": "16.08.2026",
+   "file": "klausuren/ewh-gender-identity-e-lk-q2.json"
   }
  ]
 }
