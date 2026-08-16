@@ -1,36 +1,3 @@
 {
- "klausuren": [
-  {
-   "id": "ewh-visions-of-the-future-e-lk-q1",
-   "titel": "Written Exam No. 4 – Visions of the future",
-   "kurs": "E LK Q1",
-   "datum": "18.08.2026",
-   "file": "klausuren/ewh-visions-of-the-future-e-lk-q1.json"
-  },
-  {
-   "id": "ewh-plastic-oceans-e-lk-q1",
-   "titel": "Written Exam No. 3 – Living and studying in a globalized world",
-   "kurs": "E LK Q1",
-   "datum": "22.02.2022",
-   "file": "klausuren/ewh-plastic-oceans-e-lk-q1.json"
-  },
-  {
-   "id": "ewh-gender-identity-e-lk-q2",
-   "titel": "Written Exam No. 1 – Gender & Identity",
-   "kurs": "E LK Q2",
-   "datum": "16.08.2026",
-   "file": "klausuren/ewh-gender-identity-e-lk-q2.json"
-  },
-  {
-   "id": "ewh-nigeria-e-lk-q2",
-   "titel": "Vorabitur-Klausur Nr. 3 – Nigeria (Sozaboy)",
-   "kurs": "E LK Q2",
-   "datum": "23.02.2023",
-   "file": "klausuren/ewh-nigeria-e-lk-q2.json",
-   "status": "fertig",
-   "fertig_am": "2026-08-16",
-   "bewertet": 4,
-   "fehlend": 1
-  }
- ]
+ "klausuren": []
 }
