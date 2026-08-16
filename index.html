@@ -292,10 +292,13 @@ function save() {
 
 /* ---------------- Katalog ---------------- */
 async function loadCatalog(force) {
+  letzterKatalogAbruf = Date.now();
   const cached = lsGet(K_CATALOG);
   if (cached && !force) { catalog = cached; renderExamList(); }
   try {
-    const res = await fetch(CATALOG_URL, { cache: "no-store" });
+    // Zeitstempel gegen zwischengespeicherte Auslieferung: ohne ihn kann der
+    // Webserver den Katalog noch minutenlang im alten Stand herausgeben.
+    const res = await fetch(CATALOG_URL + "?t=" + Date.now(), { cache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
     catalog = data.klausuren || [];
@@ -308,15 +311,35 @@ async function loadCatalog(force) {
     } else if (force) { flash("Keine Verbindung — zeige gespeicherte Liste"); }
   }
 }
+/* Wird die App wieder in den Vordergrund geholt, den Katalog still erneuern:
+   Nach einer Auswertung am PC steht der neue Stand so ohne Antippen bereit —
+   ebenso eine neu bereitgestellte Klausur. Kurz gedrosselt, damit schnelles
+   Hin- und Herwechseln nicht jedes Mal einen Abruf auslöst. */
+let letzterKatalogAbruf = 0;
+function katalogAutoErneuern() {
+  if (Date.now() - letzterKatalogAbruf < 5000) return;
+  loadCatalog(false);
+}
 async function loadExam(entry) {
-  let cfg = lsGet(K_CFG(entry.id));
-  if (!cfg) {
-    try {
-      const res = await fetch(entry.file, { cache: "no-store" });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      cfg = await res.json();
-      lsSet(K_CFG(entry.id), cfg);
-    } catch (e) { flash("Klausur konnte nicht geladen werden"); return; }
+  const gespeichert = lsGet(K_CFG(entry.id));
+  let cfg = gespeichert;
+  try {
+    // Netz zuerst: so gilt immer die aktuelle Fassung der Klausur, ohne
+    // Verbindung der gespeicherte Stand.
+    const res = await fetch(entry.file + "?t=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const frisch = await res.json();
+    if (gespeichert && JSON.stringify(frisch) !== JSON.stringify(gespeichert)) {
+      const daten = lsGet(K_DATA(entry.id));
+      const mitPunkten = !!(daten && daten.students &&
+        daten.students.some(s => s.p && Object.keys(s.p).length));
+      flash(mitPunkten ? "Neue Fassung geladen — vergebene Punkte bleiben erhalten"
+                       : "Neue Fassung der Klausur geladen");
+    }
+    cfg = frisch;
+    lsSet(K_CFG(entry.id), cfg);
+  } catch (e) {
+    if (!cfg) { flash("Klausur konnte nicht geladen werden"); return; }
   }
   activate(cfg);
 }
@@ -907,6 +930,9 @@ function setView(v) {
     const n = state.students.length;
     state = freshState(n); idx = 0; save(); setView("kurs"); flash("Zurückgesetzt");
   };
+  document.addEventListener("visibilitychange", katalogAutoErneuern);
+  window.addEventListener("pageshow", katalogAutoErneuern);
+  window.addEventListener("online", katalogAutoErneuern);
   loadCatalog(false);
 })();
 </script>
