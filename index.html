@@ -157,7 +157,10 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       <h2>Fertig korrigiert</h2>
       <div class="card" id="doneList"></div>
     </div>
-    <div class="row"><button class="btn quiet" id="refreshBtn">Liste aktualisieren</button></div>
+    <div class="row">
+      <button class="btn quiet" id="refreshBtn">Liste aktualisieren</button>
+      <button class="btn quiet" id="tidyBtn">Speicher aufräumen</button>
+    </div>
     <p class="privacy">Punkte und Kursliste liegen ausschließlich auf diesem Gerät. Übertragen wird nur, was du selbst über „Sichern“ kopierst — Kürzel und Punkte, keine Namen.</p>
   </section>
 
@@ -691,6 +694,25 @@ function examRow(e, istFertig) {
   row.onclick = () => loadExam(e);
   return row;
 }
+function tidyStorage() {
+  // Punkte bleiben auf dem Geraet, auch wenn eine Klausur aus dem Katalog
+  // verschwindet. Das raeumt genau diese verwaisten Reste weg - und nur die.
+  const ids = catalog.map(e => e.id);
+  const kurse = catalog.map(e => e.kurs.replace(/\s+/g, "_"));
+  const weg = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || k.indexOf("ewh:") !== 0 || k === K_CATALOG) continue;
+    if (k.indexOf("ewh:app:cfg:") === 0) {
+      if (ids.indexOf(k.slice(12)) < 0) weg.push(k);
+    } else if (k.indexOf("ewh:app:kurs:") === 0) {
+      if (kurse.indexOf(k.slice(13)) < 0) weg.push(k);
+    } else if (ids.indexOf(k.slice(4)) < 0) {
+      weg.push(k);
+    }
+  }
+  return weg;
+}
 function renderStorageInfo() {
   const el = document.getElementById("storageInfo");
   if (!el || !state) return;
@@ -761,6 +783,22 @@ function setView(v) {
   document.getElementById("tabBewerten").onclick = () => { if (CFG) setView("bewerten"); };
   document.getElementById("tabSichern").onclick = () => { if (CFG) setView("sichern"); };
   document.getElementById("refreshBtn").onclick = () => loadCatalog(true);
+  document.getElementById("tidyBtn").onclick = () => {
+    const weg = tidyStorage();
+    if (!weg.length) { flash("Nichts aufzuräumen"); return; }
+    const betroffen = weg.filter(k => k.indexOf("ewh:app:") !== 0).length;
+    if (!confirm("Auf diesem Gerät liegen Daten zu " + weg.length +
+        " nicht mehr vorhandenen Einträgen" +
+        (betroffen ? ", darunter " + betroffen + " mit vergebenen Punkten" : "") +
+        ". Endgültig löschen?")) return;
+    weg.forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+    if (CFG && catalog.map(e => e.id).indexOf(CFG.meta.storage_id) < 0) {
+      CFG = null; state = null;
+      ["tabKurs", "tabBewerten", "tabSichern"].forEach(t => document.getElementById(t).disabled = true);
+    }
+    renderExamList(); renderHead();
+    flash(weg.length + " Einträge gelöscht");
+  };
 
   document.getElementById("prevBtn").onclick = () => { if (idx > 0) { idx--; setView("bewerten"); } };
   document.getElementById("nextBtn").onclick = () => { if (idx < state.students.length - 1) { idx++; setView("bewerten"); } };
