@@ -204,6 +204,11 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       <p class="muted" style="margin:0 0 9px">Diktieren geht: Mikrofon auf der Tastatur antippen.</p>
       <textarea id="fokusInput" style="font-family:inherit;font-size:16px" placeholder="z. B. Sprachrichtigkeit (Grammatik), Belegtechnik"></textarea>
     </div>
+    <div class="card" id="abwBox" hidden style="border-color:#c00000">
+      <h3 style="margin:0 0 6px" id="abwTitel"></h3>
+      <p class="muted" style="margin:0 0 11px" id="abwHinweis"></p>
+      <div class="taps" id="abwTaps"></div>
+    </div>
     <div class="gradebox" id="gradeBox">
       <div class="lbl">Note dieser Arbeit</div>
       <div class="val" id="gradeVal">–</div>
@@ -359,14 +364,14 @@ function activate(cfg) {
   }));
   state = lsGet(K_DATA(CFG.meta.storage_id)) || freshState(CFG.meta.n_students || 30);
   if (!state.students || !state.students.length) state = freshState(CFG.meta.n_students || 30);
-  state.students.forEach(s => { s.w = Object.assign({}, DEFAULT_WAHL, s.w || {}); s.p = s.p || {}; s.a = !!s.a; });
+  state.students.forEach(s => { s.w = Object.assign({}, DEFAULT_WAHL, s.w || {}); s.p = s.p || {}; s.a = !!s.a; abwPruefen(s); });
   kursliste = lsGet(K_KURS(CFG.meta.kurs)) || [];
   idx = 0;
   ["tabKurs", "tabBewerten", "tabSichern"].forEach(t => document.getElementById(t).disabled = false);
   document.getElementById("ptsMax").textContent = "/ " + CFG.meta.combination_max;
   setView("kurs");
 }
-function blankStudent(i) { return { k: String(i + 1).padStart(2, "0"), p: {}, w: Object.assign({}, DEFAULT_WAHL), f: "", a: false }; }
+function blankStudent(i) { return { k: String(i + 1).padStart(2, "0"), p: {}, w: Object.assign({}, DEFAULT_WAHL), f: "", a: false, ab: 0 }; }
 function freshState(n) {
   return { v: 2, exam: CFG.meta.storage_id, saved: null,
            abgeschlossen: false, abgeschlossen_am: null,
@@ -430,6 +435,37 @@ function examProgress(entry) {
   return { gesamt, fehlend, fertig, begonnen, offen: gesamt - fehlend - fertig - begonnen };
 }
 function grade(p) { let hit = CFG.notenfindung[0]; for (const r of CFG.notenfindung) if (p >= r[0]) hit = r; return { np: hit[1], kurz: hit[2] }; }
+
+/* ---------------- Abwertung der Note ----------------
+   Amtlich vorgesehene Absenkung bei gehäuften Verstößen gegen die sprachliche
+   Richtigkeit: Die Punktzahl bleibt unverändert, nur die Notenpunkte sinken.
+   Ob es die Abwertung gibt, welches Kriterium sie freischaltet und wie weit sie
+   reicht, sagt ausschließlich die Config — die App kennt kein Fach. */
+function abwRegel() { return (CFG && CFG.abwertung) || null; }
+function abwMoeglich(st) {
+  const r = abwRegel();
+  return !!(r && st && !st.a && st.p[r.feld] === 0);
+}
+function abwWert(st) {
+  const r = abwRegel();
+  if (!abwMoeglich(st)) return 0;
+  return Math.max(0, Math.min(r.max_np, st.ab || 0));
+}
+// Fällt die Voraussetzung weg, verfällt auch eine bereits gesetzte Abwertung.
+function abwPruefen(st) {
+  if (st && st.ab && !abwMoeglich(st)) { delete st.ab; return true; }
+  return false;
+}
+function notenKurz(np) {
+  const r = CFG.notenfindung.filter(x => x[1] === np)[0];
+  return r ? r[2] : "–";
+}
+function noteFuer(st) {
+  const g = grade(total(st)), ab = abwWert(st);
+  if (!ab) return { np: g.np, kurz: g.kurz, ab: 0, npRoh: g.np };
+  const np = Math.max(0, g.np - ab);
+  return { np, kurz: notenKurz(np), ab, npRoh: g.np };
+}
 
 /* ---------------- Kursliste ---------------- */
 const PARTICLES = ["von", "van", "de", "der", "den", "zu", "zum", "del", "di", "da", "le", "la"];
@@ -516,9 +552,10 @@ function tapRow(st, crit) {
     b.setAttribute("aria-label", crit.short + ": " + v + " von " + crit.max);
     b.addEventListener("click", () => {
       if (st.p[crit.field] === v) delete st.p[crit.field]; else st.p[crit.field] = v;
+      abwPruefen(st);
       // renderGradeBox() MUSS hier mitlaufen: der Kasten ueber „Naechste Arbeit"
       // haengt sonst hinterher, weil er nur beim Neuaufbau der Seite geschrieben wird.
-      save(); renderHead(); renderGradeBox();
+      save(); renderHead(); renderGradeBox(); renderAbwBox();
       wrap.querySelectorAll(".tap").forEach((x, n) => x.setAttribute("aria-pressed", String(st.p[crit.field] === n)));
     });
     wrap.appendChild(b);
@@ -618,13 +655,35 @@ function renderBewerten() {
       host.appendChild(card);
     });
   });
-  renderGradeBox();
+  renderGradeBox(); renderAbwBox();
   document.getElementById("prevBtn").disabled = (idx === 0);
   document.getElementById("nextBtn").disabled = (idx >= state.students.length - 1);
 }
 
+function renderAbwBox() {
+  const box = document.getElementById("abwBox"), r = abwRegel();
+  const st = state.students[idx];
+  if (!r || !abwMoeglich(st)) { box.hidden = true; return; }
+  document.getElementById("abwTitel").textContent = r.titel || "Abwertung der Note";
+  document.getElementById("abwHinweis").textContent = r.hinweis || "";
+  const taps = document.getElementById("abwTaps");
+  taps.innerHTML = "";
+  for (let v = 0; v <= r.max_np; v++) {
+    const b = document.createElement("button");
+    b.className = "tap"; b.type = "button";
+    b.textContent = v ? "−" + v : "keine";
+    b.setAttribute("aria-pressed", String(abwWert(st) === v));
+    b.setAttribute("aria-label", v ? "Abwertung um " + v + " Notenpunkte" : "keine Abwertung");
+    b.addEventListener("click", () => {
+      if (v) st.ab = v; else delete st.ab;
+      save(); renderHead(); renderGradeBox(); renderAbwBox();
+    });
+    taps.appendChild(b);
+  }
+  box.hidden = false;
+}
 function renderGradeBox() {
-  const st = state.students[idx], pr = filled(st), pts = total(st), g = grade(pts);
+  const st = state.students[idx], pr = filled(st), pts = total(st), g = noteFuer(st);
   const val = document.getElementById("gradeVal"), sub = document.getElementById("gradeSub");
   const nx = document.getElementById("gradeNext");
   nx.hidden = true;
@@ -634,7 +693,8 @@ function renderGradeBox() {
   if (!pr.n) { val.textContent = "–"; sub.textContent = "noch keine Bewertung"; return; }
   val.textContent = g.kurz + " (" + g.np + " Punkte)";
   sub.textContent = pts + " von " + CFG.meta.combination_max + " Punkten · " +
-                    (pr.n === pr.of ? "vollständig" : pr.n + " von " + pr.of + " Kriterien");
+                    (pr.n === pr.of ? "vollständig" : pr.n + " von " + pr.of + " Kriterien") +
+                    (g.ab ? " · abgewertet um " + g.ab + " (statt " + g.npRoh + ")" : "");
   // Grenzfall-Hinweis: Abstand nach oben und nach unten. Genau da, wo man
   // ohnehin lange ueberlegt, steht damit sofort, worum es geht.
   const rows = CFG.notenfindung;
@@ -659,7 +719,7 @@ function renderHead() {
       view === "klausuren" ? "Klausuren" : (view === "kurs" ? (CFG ? CFG.meta.exam_title : "Kurs") : "Sichern");
     return;
   }
-  const st = state.students[idx], pts = total(st), g = grade(pts), pr = filled(st);
+  const st = state.students[idx], pts = total(st), g = noteFuer(st), pr = filled(st);
   const person = kursliste[idx];
   document.getElementById("ctxTitle").textContent =
     (idx + 1) + "/" + state.students.length + " · " + (person ? person.nach : (st.k || "—"));
@@ -669,12 +729,24 @@ function renderHead() {
   document.getElementById("bar").style.width = (pr.of ? (pr.n / pr.of * 100) : 0) + "%";
   box.hidden = false; bw.hidden = false;
 }
+/* Ob eine Klausur als fertig gilt, entscheidet zuerst der Stand auf diesem
+   Geraet: Wird die Markierung gesetzt oder wieder aufgehoben, wandert die
+   Klausur sofort in die richtige Liste. Der Katalog im Netz erfaehrt davon
+   erst beim Auswertungslauf am PC. */
+function istFertig(e) {
+  // Fuer die gerade geoeffnete Klausur zaehlt der Stand im Arbeitsspeicher:
+  // das Speichern laeuft verzoegert, die Liste soll aber sofort stimmen.
+  const data = (CFG && state && CFG.meta.storage_id === e.id) ? state : lsGet(K_DATA(e.id));
+  if (data && data.abgeschlossen) return true;
+  if (data && data.aufgehoben) return false;
+  return e.status === "fertig";
+}
 function renderExamList() {
   const host = document.getElementById("examList");
   host.innerHTML = "";
   if (!catalog.length) { host.innerHTML = '<p class="muted" style="margin:0">Noch keine Klausuren hinterlegt.</p>'; return; }
-  const offen = catalog.filter(e => e.status !== "fertig");
-  const fertig = catalog.filter(e => e.status === "fertig");
+  const offen = catalog.filter(e => !istFertig(e));
+  const fertig = catalog.filter(e => istFertig(e));
   if (!offen.length) host.innerHTML = '<p class="muted" style="margin:0">Alles korrigiert.</p>';
   offen.forEach(e => host.appendChild(examRow(e)));
 
@@ -788,7 +860,7 @@ function exportText() {
     saved: new Date().toISOString(),
     abgeschlossen: !!state.abgeschlossen,
     abgeschlossen_am: state.abgeschlossen_am || null,
-    students: state.students.map(s => ({ k: s.k, w: s.w, p: s.p, f: s.f, abwesend: !!s.a }))
+    students: state.students.map(s => ({ k: s.k, w: s.w, p: s.p, f: s.f, abwesend: !!s.a, ab: abwWert(s) }))
   });
 }
 // Dateiname mit Zeitstempel: ein zweiter Versand überschreibt nie den ersten.
@@ -871,12 +943,16 @@ function setView(v) {
       if (offen && !confirm(offen + " Arbeit(en) sind noch nicht vollständig bewertet. Trotzdem als fertig markieren?")) return;
       state.abgeschlossen = true;
       state.abgeschlossen_am = new Date().toISOString();
+      delete state.aufgehoben;
       flash("Als fertig korrigiert markiert");
     } else {
       state.abgeschlossen = false; state.abgeschlossen_am = null;
+      // Absicht merken: sonst holt der Katalog vom PC die Klausur gleich
+      // wieder zurueck in die Liste der fertigen Arbeiten.
+      state.aufgehoben = true;
       flash("Markierung aufgehoben");
     }
-    save(); renderDoneBox();
+    save(); renderDoneBox(); renderExamList();
   };
   document.getElementById("applyCount").onclick = () => {
     const n = Math.max(1, Math.min(60, parseInt(document.getElementById("countInput").value, 10) || 1));
@@ -919,11 +995,12 @@ function setView(v) {
     if (!d || !Array.isArray(d.students)) { flash("Block nicht lesbar"); return; }
     if (d.exam && d.exam !== CFG.meta.storage_id) { flash("Der Block gehört zu einer anderen Klausur"); return; }
     if (!confirm("Aktuellen Stand dieser Klausur ersetzen?")) return;
-    state.students = d.students.map(s => ({ k: s.k || "", p: s.p || {}, w: Object.assign({}, DEFAULT_WAHL, s.w || {}), f: s.f || "", a: !!s.abwesend }));
+    state.students = d.students.map(s => ({ k: s.k || "", p: s.p || {}, w: Object.assign({}, DEFAULT_WAHL, s.w || {}), f: s.f || "", a: !!s.abwesend, ab: s.ab || 0 }));
     state.abgeschlossen = !!d.abgeschlossen;
     state.abgeschlossen_am = d.abgeschlossen_am || null;
+    if (state.abgeschlossen) delete state.aufgehoben; else state.aufgehoben = true;
     idx = 0; save(); document.getElementById("importBox").value = "";
-    setView("kurs"); flash("Stand übernommen");
+    renderExamList(); setView("kurs"); flash("Stand übernommen");
   };
   document.getElementById("resetBtn").onclick = () => {
     if (!confirm("Wirklich alle Punkte dieser Klausur löschen?")) return;
