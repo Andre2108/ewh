@@ -6,6 +6,13 @@
    "kurs": "D GK Q1",
    "datum": "16.08.2026",
    "file": "klausuren/ewh-gedichtvergleich-romantik-d-gk-q1.json"
+  },
+  {
+   "id": "ewh-greenwich-5c",
+   "titel": "Class test no. 6 - Greenwich",
+   "kurs": "E-5c",
+   "datum": "17.08.2026",
+   "file": "klausuren/ewh-greenwich-5c.json"
   }
  ]
 }
