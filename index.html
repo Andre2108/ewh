@@ -462,7 +462,17 @@ function computeNotenfindung(maxPunkte, schwelleAnteil) {
   for (let np = 4; np <= 15; np++) grenzen[np] = schwelle + (np - 4) * breiteOben;
   grenzen[0] = 0;
   for (const np of [1, 2, 3]) grenzen[np] = schwelle / 2 + (np - 1) * breiteUnten;
-  return NOTEN_LABELS.map(([np, kurz]) => [Math.round(grenzen[np] * 100) / 100, np, kurz])
+  // Grenzen auf halbe Punkte runden (siehe skripte/notenschema_prozentual.py) -
+  // strikt aufsteigend nachziehen, falls zwei Grenzen dabei zusammenfallen.
+  const sortiert = Object.keys(grenzen).map(Number).sort((a, b) => grenzen[a] - grenzen[b]);
+  let voran = null;
+  for (const np of sortiert) {
+    let gerundet = Math.round(grenzen[np] * 2) / 2;
+    if (voran !== null && gerundet <= voran) gerundet = voran + 0.5;
+    grenzen[np] = gerundet;
+    voran = gerundet;
+  }
+  return NOTEN_LABELS.map(([np, kurz]) => [grenzen[np], np, kurz])
     .sort((a, b) => a[0] - b[0]);
 }
 function istProzentual() { return !!(CFG && CFG.meta.notenschema === "prozentual"); }

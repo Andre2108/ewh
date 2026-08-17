@@ -12,7 +12,11 @@
    "titel": "Class test no. 6 - Greenwich",
    "kurs": "E-5c",
    "datum": "17.08.2026",
-   "file": "klausuren/ewh-greenwich-5c.json"
+   "file": "klausuren/ewh-greenwich-5c.json",
+   "status": "fertig",
+   "fertig_am": "2026-08-17",
+   "bewertet": 1,
+   "fehlend": 27
   }
  ]
 }
