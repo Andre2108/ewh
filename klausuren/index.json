@@ -17,6 +17,13 @@
    "fertig_am": "2026-08-17",
    "bewertet": 1,
    "fehlend": 27
+  },
+  {
+   "id": "ewh-auntfrances-5c",
+   "titel": "Written test no. 5",
+   "kurs": "E-5c",
+   "datum": "17.08.2026",
+   "file": "klausuren/ewh-auntfrances-5c.json"
   }
  ]
 }
