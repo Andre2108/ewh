@@ -633,6 +633,9 @@ function bulletHtml(t) {
   if (w.length <= 3) return "<b>" + escHtml(t) + "</b>";
   return "<b>" + escHtml(w.slice(0, 3).join(" ")) + "</b> " + escHtml(w.slice(3).join(" "));
 }
+// Bewertungsschema (nur App, nie Word): **Text** wird fett - fuer die
+// grammatikalische Form, um die es im jeweiligen Teilkriterium geht.
+function schemaHtml(t) { return escHtml(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>"); }
 function critBlock(st, crit) {
   const d = document.createElement("div");
   d.className = "crit";
@@ -644,16 +647,27 @@ function critBlock(st, crit) {
   // Reservezeile: in den amtlichen Vorlagen steht die Punktzahl in Klammern
   head.querySelector(".cmax").textContent = (crit.reserve ? "Reserve max " : "max ") + crit.max;
   d.appendChild(head);
-  if (crit.intro && (crit.bullets.length || crit.intro !== crit.short)) {
+  const bullets = crit.bullets || [], schema = crit.schema || [];
+  if (crit.intro && (bullets.length || schema.length || crit.intro !== crit.short)) {
     const btn = document.createElement("button");
     btn.className = "more"; btn.type = "button"; btn.textContent = "Kriterium anzeigen";
     const long = document.createElement("div");
     long.className = "long"; long.hidden = true;
     const p = document.createElement("p"); p.textContent = crit.intro; long.appendChild(p);
-    if (crit.bullets.length) {
+    if (bullets.length) {
       const ul = document.createElement("ul");
-      crit.bullets.forEach(t => { const li = document.createElement("li"); li.innerHTML = bulletHtml(t); ul.appendChild(li); });
+      bullets.forEach(t => { const li = document.createElement("li"); li.innerHTML = bulletHtml(t); ul.appendChild(li); });
       long.appendChild(ul);
+    }
+    if (schema.length) {
+      // Nur intern fuer die Korrektur gedacht - erscheint deshalb nie im
+      // Word-EWH (build_ewh_config.py uebernimmt das Feld "schema" nicht).
+      const sp = document.createElement("p"); sp.className = "muted";
+      sp.style.margin = "8px 0 2px"; sp.innerHTML = "<b>Bewertungsschema:</b>";
+      long.appendChild(sp);
+      const ul2 = document.createElement("ul");
+      schema.forEach(t => { const li = document.createElement("li"); li.innerHTML = schemaHtml(t); ul2.appendChild(li); });
+      long.appendChild(ul2);
     }
     btn.onclick = () => { long.hidden = !long.hidden; btn.textContent = long.hidden ? "Kriterium anzeigen" : "Kriterium ausblenden"; };
     d.appendChild(btn); d.appendChild(long);
