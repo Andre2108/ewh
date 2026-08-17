@@ -165,6 +165,13 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   </section>
 
   <section id="viewKurs" hidden>
+    <div class="card" id="schwelleCard" hidden>
+      <div class="seg" id="schwelleSeg">
+        <button type="button" data-schwelle="0.5" aria-pressed="false">Defizitschwelle 50 %</button>
+        <button type="button" data-schwelle="0.45" aria-pressed="false">Defizitschwelle 45 %</button>
+      </div>
+      <p class="muted" style="margin:6px 0 0">Wirkt sofort auf alle Noten unten — auch rückwirkend, jederzeit umschaltbar.</p>
+    </div>
     <h2>Arbeiten im Kurs</h2>
     <div class="card" id="studentList"></div>
     <p class="muted" style="margin:2px 0 0">Mit <b>fehlt</b> markierst du, wer nicht mitgeschrieben hat: zählt nicht als offen, bleibt in der Excel-Tabelle hellrot und leer.</p>
@@ -366,6 +373,10 @@ function activate(cfg) {
   if (!state.students || !state.students.length) state = freshState(CFG.meta.n_students || 30);
   state.students.forEach(s => { s.w = Object.assign({}, DEFAULT_WAHL, s.w || {}); s.p = s.p || {}; s.a = !!s.a; abwPruefen(s); });
   kursliste = lsGet(K_KURS(CFG.meta.kurs)) || [];
+  if (istProzentual()) {
+    if (typeof state.schwelle !== "number") state.schwelle = CFG.meta.defizitschwelle || 0.5;
+    CFG.notenfindung = computeNotenfindung(CFG.meta.combination_max, state.schwelle);
+  }
   idx = 0;
   ["tabKurs", "tabBewerten", "tabSichern"].forEach(t => document.getElementById(t).disabled = false);
   document.getElementById("ptsMax").textContent = "/ " + CFG.meta.combination_max;
@@ -434,6 +445,38 @@ function examProgress(entry) {
   const gesamt = data.students.length;
   return { gesamt, fehlend, fertig, begonnen, offen: gesamt - fehlend - fertig - begonnen };
 }
+/* ---------------- Prozentuales Notenschema (Sek I) ----------------
+   JS-Entsprechung von skripte/notenschema_prozentual.py::berechne_notenfindung.
+   Nur relevant, wenn CFG.meta.notenschema === "prozentual" (Sek II liefert die
+   Notenfindungstabelle bereits fertig in CFG.notenfindung mit). */
+const NOTEN_LABELS = [
+  [15, "1+"], [14, "1"], [13, "1-"], [12, "2+"], [11, "2"], [10, "2-"],
+  [9, "3+"], [8, "3"], [7, "3-"], [6, "4+"], [5, "4"], [4, "4-"],
+  [3, "5+"], [2, "5"], [1, "5-"], [0, "6"],
+];
+function computeNotenfindung(maxPunkte, schwelleAnteil) {
+  const schwelle = maxPunkte * schwelleAnteil;
+  const breiteOben = (maxPunkte - schwelle) / 12;
+  const breiteUnten = (schwelle / 2) / 3;
+  const grenzen = {};
+  for (let np = 4; np <= 15; np++) grenzen[np] = schwelle + (np - 4) * breiteOben;
+  grenzen[0] = 0;
+  for (const np of [1, 2, 3]) grenzen[np] = schwelle / 2 + (np - 1) * breiteUnten;
+  return NOTEN_LABELS.map(([np, kurz]) => [Math.round(grenzen[np] * 100) / 100, np, kurz])
+    .sort((a, b) => a[0] - b[0]);
+}
+function istProzentual() { return !!(CFG && CFG.meta.notenschema === "prozentual"); }
+function aktuelleSchwelle() {
+  return (state && typeof state.schwelle === "number") ? state.schwelle : (CFG.meta.defizitschwelle || 0.5);
+}
+function schwelleSetzen(anteil) {
+  state.schwelle = anteil;
+  CFG.notenfindung = computeNotenfindung(CFG.meta.combination_max, anteil);
+  save();
+  renderKurs();
+  if (view === "bewerten") { renderHead(); renderGradeBox(); }
+}
+
 function grade(p) { let hit = CFG.notenfindung[0]; for (const r of CFG.notenfindung) if (p >= r[0]) hit = r; return { np: hit[1], kurz: hit[2] }; }
 
 /* ---------------- Abwertung der Note ----------------
@@ -503,7 +546,17 @@ function renderKursInfo() {
 }
 
 /* ---------------- Kursansicht ---------------- */
+function renderSchwelleCard() {
+  const card = document.getElementById("schwelleCard");
+  card.hidden = !istProzentual();
+  if (card.hidden) return;
+  const aktiv = aktuelleSchwelle();
+  card.querySelectorAll("button[data-schwelle]").forEach(b => {
+    b.setAttribute("aria-pressed", String(Math.abs(parseFloat(b.dataset.schwelle) - aktiv) < 1e-6));
+  });
+}
 function renderKurs() {
+  renderSchwelleCard();
   const host = document.getElementById("studentList");
   host.innerHTML = "";
   state.students.forEach((st, i) => {
@@ -542,21 +595,29 @@ function renderKurs() {
 }
 
 /* ---------------- Bewertungsbogen ---------------- */
+// Anzeige mit Komma statt Punkt, nur wenn tatsaechlich ein Nachkommaanteil da ist
+// (halbe Punkte gibt es nur bei der Sek I, siehe istProzentual()).
+function fmtP(n) {
+  return (Math.round(n * 2) % 2 === 0) ? String(Math.round(n)) : String(n).replace(".", ",");
+}
 function tapRow(st, crit) {
   const wrap = document.createElement("div");
   wrap.className = "taps";
-  for (let v = 0; v <= crit.max; v++) {
+  const step = istProzentual() ? 0.5 : 1;
+  for (let v = 0; v <= crit.max + 1e-9; v += step) {
+    v = Math.round(v * 2) / 2; // Rundungsdrift beim Aufsummieren der Schrittweite vermeiden
     const b = document.createElement("button");
-    b.className = "tap"; b.type = "button"; b.textContent = v;
+    b.className = "tap"; b.type = "button"; b.textContent = fmtP(v);
+    b.dataset.v = String(v);
     b.setAttribute("aria-pressed", String(st.p[crit.field] === v));
-    b.setAttribute("aria-label", crit.short + ": " + v + " von " + crit.max);
+    b.setAttribute("aria-label", crit.short + ": " + fmtP(v) + " von " + fmtP(crit.max));
     b.addEventListener("click", () => {
       if (st.p[crit.field] === v) delete st.p[crit.field]; else st.p[crit.field] = v;
       abwPruefen(st);
       // renderGradeBox() MUSS hier mitlaufen: der Kasten ueber „Naechste Arbeit"
       // haengt sonst hinterher, weil er nur beim Neuaufbau der Seite geschrieben wird.
       save(); renderHead(); renderGradeBox(); renderAbwBox();
-      wrap.querySelectorAll(".tap").forEach((x, n) => x.setAttribute("aria-pressed", String(st.p[crit.field] === n)));
+      wrap.querySelectorAll(".tap").forEach(x => x.setAttribute("aria-pressed", String(st.p[crit.field] === parseFloat(x.dataset.v))));
     });
     wrap.appendChild(b);
   }
@@ -691,8 +752,8 @@ function renderGradeBox() {
     val.textContent = "fehlt"; sub.textContent = "nicht mitgeschrieben"; return;
   }
   if (!pr.n) { val.textContent = "–"; sub.textContent = "noch keine Bewertung"; return; }
-  val.textContent = g.kurz + " (" + g.np + " Punkte)";
-  sub.textContent = pts + " von " + CFG.meta.combination_max + " Punkten · " +
+  val.textContent = istProzentual() ? g.kurz : (g.kurz + " (" + g.np + " Punkte)");
+  sub.textContent = fmtP(pts) + " von " + CFG.meta.combination_max + " Punkten · " +
                     (pr.n === pr.of ? "vollständig" : pr.n + " von " + pr.of + " Kriterien") +
                     (g.ab ? " · abgewertet um " + g.ab + " (statt " + g.npRoh + ")" : "");
   // Grenzfall-Hinweis: Abstand nach oben und nach unten. Genau da, wo man
@@ -702,9 +763,9 @@ function renderGradeBox() {
   for (let k = 0; k < rows.length; k++) if (pts >= rows[k][0]) i = k;
   const hoch = rows[i + 1], puffer = pts - rows[i][0];
   const teile = [];
-  if (hoch) teile.push((hoch[0] - pts) + " " + (hoch[0] - pts === 1 ? "Punkt" : "Punkte") + " bis " + hoch[2]);
+  if (hoch) teile.push(fmtP(hoch[0] - pts) + " " + (hoch[0] - pts === 1 ? "Punkt" : "Punkte") + " bis " + hoch[2]);
   else teile.push("Höchststufe erreicht");
-  if (i > 0) teile.push(puffer + " über " + rows[i][2]);
+  if (i > 0) teile.push(fmtP(puffer) + " über " + rows[i][2]);
   nx.textContent = teile.join("  ·  ");
   nx.hidden = false;
 }
@@ -723,9 +784,9 @@ function renderHead() {
   const person = kursliste[idx];
   document.getElementById("ctxTitle").textContent =
     (idx + 1) + "/" + state.students.length + " · " + (person ? person.nach : (st.k || "—"));
-  document.getElementById("pts").textContent = pts;
+  document.getElementById("pts").textContent = fmtP(pts);
   document.getElementById("noteWord").textContent = pr.n ? g.kurz : "–";
-  document.getElementById("notePts").textContent = pr.n ? (g.np + " P.") : "–";
+  document.getElementById("notePts").textContent = istProzentual() ? "" : (pr.n ? (g.np + " P.") : "–");
   document.getElementById("bar").style.width = (pr.of ? (pr.n / pr.of * 100) : 0) + "%";
   box.hidden = false; bw.hidden = false;
 }
@@ -855,13 +916,17 @@ function flash(msg) {
   setTimeout(() => f.classList.remove("show"), 2200);
 }
 function exportText() {
-  return "EWH-DATEN " + JSON.stringify({
+  const daten = {
     v: 2, exam: CFG.meta.storage_id, kurs: CFG.meta.kurs, datum: CFG.meta.datum,
     saved: new Date().toISOString(),
     abgeschlossen: !!state.abgeschlossen,
     abgeschlossen_am: state.abgeschlossen_am || null,
     students: state.students.map(s => ({ k: s.k, w: s.w, p: s.p, f: s.f, abwesend: !!s.a, ab: abwWert(s) }))
-  });
+  };
+  // Prozentuales Notenschema (Sek I): die am Handy zuletzt gewählte
+  // Defizitschwelle mitschicken, damit Excel/Word dieselbe Note zeigen.
+  if (istProzentual()) daten.schwelle = aktuelleSchwelle();
+  return "EWH-DATEN " + JSON.stringify(daten);
 }
 // Dateiname mit Zeitstempel: ein zweiter Versand überschreibt nie den ersten.
 function exportFilename() {
@@ -916,6 +981,9 @@ function setView(v) {
   document.getElementById("kuerzelInput").addEventListener("input", e => { state.students[idx].k = e.target.value; save(); renderHead(); });
   document.getElementById("fokusInput").addEventListener("input", e => { state.students[idx].f = e.target.value; save(); });
 
+  document.getElementById("schwelleSeg").querySelectorAll("button[data-schwelle]").forEach(b => {
+    b.addEventListener("click", () => schwelleSetzen(parseFloat(b.dataset.schwelle)));
+  });
   document.getElementById("kursApply").onclick = () => {
     const rows = parseKursliste(document.getElementById("kursInput").value);
     if (!rows.length) { flash("Keine Zeilen erkannt"); return; }
