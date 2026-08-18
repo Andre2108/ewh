@@ -24,6 +24,13 @@
    "kurs": "E-5c",
    "datum": "17.08.2026",
    "file": "klausuren/ewh-auntfrances-5c.json"
+  },
+  {
+   "id": "ewh-city-and-surroundings-5c",
+   "titel": "Class test no. 5 – The city and its surroundings (Unit 4)",
+   "kurs": "E-5c",
+   "datum": "27.04.2022",
+   "file": "klausuren/ewh-city-and-surroundings-5c.json"
   }
  ]
 }
