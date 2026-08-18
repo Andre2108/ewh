@@ -87,7 +87,8 @@ pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--pape
   border:1px solid var(--line);border-radius:9px;padding:11px;margin:0;
   white-space:pre-wrap;word-break:break-all;max-height:230px;overflow:auto}
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--card);
-  border-top:1px solid var(--line);padding:8px 12px calc(env(safe-area-inset-bottom) + 8px)}
+  border-top:1px solid var(--line);padding:8px 12px calc(env(safe-area-inset-bottom) + 8px);
+  transform:translateZ(0);will-change:transform}
 .nav-in{max-width:680px;margin:0 auto;display:flex;gap:6px}
 .nav button{flex:1;padding:12px 4px;border:1px solid var(--line);background:var(--card);
   border-radius:9px;font-size:13px;cursor:pointer}
