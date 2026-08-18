@@ -612,7 +612,7 @@ function renderKurs() {
 function fmtP(n) {
   return (Math.round(n * 2) % 2 === 0) ? String(Math.round(n)) : String(n).replace(".", ",");
 }
-function tapRow(st, crit) {
+function tapRow(st, crit, onChange) {
   const wrap = document.createElement("div");
   wrap.className = "taps";
   const half = istProzentual();
@@ -647,25 +647,29 @@ function tapRow(st, crit) {
       // renderGradeBox() MUSS hier mitlaufen: der Kasten ueber „Naechste Arbeit"
       // haengt sonst hinterher, weil er nur beim Neuaufbau der Seite geschrieben wird.
       save(); renderHead(); renderGradeBox(); renderAbwBox();
-      refreshAll();
+      refreshAll(); if (onChange) onChange();
     });
     wrap.appendChild(b);
   }
   if (useHalfToggle) {
-    // Kein eigener "-0,5"-Button: das erneute Antippen der aktuell aktiven
-    // Ganzzahl (oben) nimmt ein gesetztes Halb bereits weg (bzw. loescht die
-    // Bewertung ganz, wenn kein Halb dabei ist) - ein Minus-Button waere hier
-    // redundant.
+    // Echter Umschalter: erneutes Antippen bei bereits gesetztem Halb nimmt
+    // es wieder weg, statt es nur erneut zu setzen.
     const plus = document.createElement("button");
     plus.className = "tap half"; plus.type = "button"; plus.textContent = "+0,5"; plus.dataset.half = "plus";
-    plus.setAttribute("aria-label", crit.short + ": halben Punkt dazu");
+    plus.setAttribute("aria-label", crit.short + ": halben Punkt dazu/weg");
     plus.addEventListener("click", () => {
       const cur = st.p[crit.field];
-      const base = cur === undefined ? 0 : Math.floor(cur + 1e-9);
-      const nv = base + 0.5;
-      if (nv > crit.max + 1e-9) return;
-      st.p[crit.field] = nv;
-      abwPruefen(st); save(); renderHead(); renderGradeBox(); renderAbwBox(); refreshAll();
+      const hasHalf = cur !== undefined && Math.abs((cur * 2) % 2) === 1;
+      if (hasHalf) {
+        st.p[crit.field] = Math.floor(cur + 1e-9);
+      } else {
+        const base = cur === undefined ? 0 : Math.floor(cur + 1e-9);
+        const nv = base + 0.5;
+        if (nv > crit.max + 1e-9) return;
+        st.p[crit.field] = nv;
+      }
+      abwPruefen(st); save(); renderHead(); renderGradeBox(); renderAbwBox();
+      refreshAll(); if (onChange) onChange();
     });
     wrap.appendChild(plus);
   }
@@ -693,8 +697,16 @@ function critBlock(st, crit) {
   head.innerHTML = '<span class="cnr"></span><span class="ctext"></span><span class="cmax"></span>';
   head.querySelector(".cnr").textContent = crit.nr || "";
   head.querySelector(".ctext").textContent = crit.short;
-  // Reservezeile: in den amtlichen Vorlagen steht die Punktzahl in Klammern
-  head.querySelector(".cmax").textContent = (crit.reserve ? "Reserve max " : "max ") + crit.max;
+  const cmaxEl = head.querySelector(".cmax");
+  // Reservezeile: in den amtlichen Vorlagen steht die Punktzahl in Klammern.
+  // Sobald bewertet wurde, zeigt die Zeile den erreichten Wert statt nur des Maximums.
+  const updateCmax = () => {
+    const cur = st.p[crit.field];
+    cmaxEl.textContent = cur === undefined
+      ? (crit.reserve ? "Reserve max " : "max ") + fmtP(crit.max)
+      : fmtP(cur) + " / " + fmtP(crit.max);
+  };
+  updateCmax();
   d.appendChild(head);
   const bullets = crit.bullets || [], schema = crit.schema || [];
   if (crit.intro && (bullets.length || schema.length || crit.intro !== crit.short)) {
@@ -721,7 +733,7 @@ function critBlock(st, crit) {
     btn.onclick = () => { long.hidden = !long.hidden; btn.textContent = long.hidden ? "Kriterium anzeigen" : "Kriterium ausblenden"; };
     d.appendChild(btn); d.appendChild(long);
   }
-  d.appendChild(tapRow(st, crit));
+  d.appendChild(tapRow(st, crit, updateCmax));
   return d;
 }
 function renderBewerten() {
