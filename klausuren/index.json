@@ -1,36 +1,11 @@
 {
  "klausuren": [
   {
-   "id": "ewh-gedichtvergleich-romantik-d-gk-q1",
-   "titel": "Klausur 1 – Literatur um 1800: Vergleich epochentypischer Gedichte mit aktueller Lyrik",
-   "kurs": "D GK Q1",
-   "datum": "16.08.2026",
-   "file": "klausuren/ewh-gedichtvergleich-romantik-d-gk-q1.json"
-  },
-  {
-   "id": "ewh-greenwich-5c",
-   "titel": "Class test no. 6 - Greenwich",
-   "kurs": "E-5c",
-   "datum": "17.08.2026",
-   "file": "klausuren/ewh-greenwich-5c.json",
-   "status": "fertig",
-   "fertig_am": "2026-08-17",
-   "bewertet": 1,
-   "fehlend": 27
-  },
-  {
-   "id": "ewh-auntfrances-5c",
-   "titel": "Written test no. 5",
-   "kurs": "E-5c",
-   "datum": "17.08.2026",
-   "file": "klausuren/ewh-auntfrances-5c.json"
-  },
-  {
-   "id": "ewh-city-and-surroundings-5c",
-   "titel": "Class test no. 5 – The city and its surroundings (Unit 4)",
-   "kurs": "E-5c",
-   "datum": "27.04.2022",
-   "file": "klausuren/ewh-city-and-surroundings-5c.json"
+   "id": "ewh-wilhelm-tell-nachschrift-8a",
+   "titel": "Friedrich Schiller: „Wilhelm Tell“ – Klassenarbeit Nr. 4 (Nachschrift)",
+   "kurs": "D-8a",
+   "datum": "12.05.2022",
+   "file": "klausuren/ewh-wilhelm-tell-nachschrift-8a.json"
   }
  ]
 }
