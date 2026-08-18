@@ -58,6 +58,8 @@ h3{font-size:15px;margin:20px 0 10px;font-weight:620}
 .tap{font-family:var(--mono);font-size:16px;min-width:44px;height:44px;
   border:1px solid var(--line);background:var(--card);border-radius:9px;cursor:pointer}
 .tap[aria-pressed="true"]{background:var(--mark);border-color:var(--mark);color:#fff;font-weight:640}
+.tap.half{border-style:dashed;margin-left:4px}
+.tap.half[aria-pressed="true"]{border-style:solid;border-color:var(--mark);background:var(--card);color:var(--mark);font-weight:640}
 .seg{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap}
 .seg button{flex:1;min-width:140px;padding:12px 10px;border:1px solid var(--line);
   background:var(--card);border-radius:9px;font-size:14px;cursor:pointer}
@@ -613,13 +615,31 @@ function fmtP(n) {
 function tapRow(st, crit) {
   const wrap = document.createElement("div");
   wrap.className = "taps";
-  const step = istProzentual() ? 0.5 : 1;
-  for (let v = 0; v <= crit.max + 1e-9; v += step) {
+  const half = istProzentual();
+  // Ab max >= 2 lohnt sich die Trennung in Ganzzahl-Buttons + separatem
+  // +-0,5-Umschalter: weniger Buttons als die volle 0,5er-Liste, ohne dass
+  // sich am Ergebnis (Punktwert in st.p[crit.field]) etwas aendert.
+  const useHalfToggle = half && crit.max >= 2;
+  const step = useHalfToggle ? 1 : (half ? 0.5 : 1);
+  const upper = useHalfToggle ? Math.floor(crit.max + 1e-9) : crit.max;
+  const refreshAll = () => {
+    wrap.querySelectorAll(".tap[data-v]").forEach(x => {
+      const v = parseFloat(x.dataset.v);
+      const cur = st.p[crit.field];
+      const pressed = useHalfToggle ? (cur !== undefined && Math.floor(cur + 1e-9) === v) : (cur === v);
+      x.setAttribute("aria-pressed", String(pressed));
+    });
+    const plusBtn = wrap.querySelector('.tap.half[data-half="plus"]');
+    if (plusBtn) {
+      const cur = st.p[crit.field];
+      plusBtn.setAttribute("aria-pressed", String(cur !== undefined && Math.abs((cur * 2) % 2) === 1));
+    }
+  };
+  for (let v = 0; v <= upper + 1e-9; v += step) {
     v = Math.round(v * 2) / 2; // Rundungsdrift beim Aufsummieren der Schrittweite vermeiden
     const b = document.createElement("button");
     b.className = "tap"; b.type = "button"; b.textContent = fmtP(v);
     b.dataset.v = String(v);
-    b.setAttribute("aria-pressed", String(st.p[crit.field] === v));
     b.setAttribute("aria-label", crit.short + ": " + fmtP(v) + " von " + fmtP(crit.max));
     b.addEventListener("click", () => {
       if (st.p[crit.field] === v) delete st.p[crit.field]; else st.p[crit.field] = v;
@@ -627,10 +647,29 @@ function tapRow(st, crit) {
       // renderGradeBox() MUSS hier mitlaufen: der Kasten ueber „Naechste Arbeit"
       // haengt sonst hinterher, weil er nur beim Neuaufbau der Seite geschrieben wird.
       save(); renderHead(); renderGradeBox(); renderAbwBox();
-      wrap.querySelectorAll(".tap").forEach(x => x.setAttribute("aria-pressed", String(st.p[crit.field] === parseFloat(x.dataset.v))));
+      refreshAll();
     });
     wrap.appendChild(b);
   }
+  if (useHalfToggle) {
+    // Kein eigener "-0,5"-Button: das erneute Antippen der aktuell aktiven
+    // Ganzzahl (oben) nimmt ein gesetztes Halb bereits weg (bzw. loescht die
+    // Bewertung ganz, wenn kein Halb dabei ist) - ein Minus-Button waere hier
+    // redundant.
+    const plus = document.createElement("button");
+    plus.className = "tap half"; plus.type = "button"; plus.textContent = "+0,5"; plus.dataset.half = "plus";
+    plus.setAttribute("aria-label", crit.short + ": halben Punkt dazu");
+    plus.addEventListener("click", () => {
+      const cur = st.p[crit.field];
+      const base = cur === undefined ? 0 : Math.floor(cur + 1e-9);
+      const nv = base + 0.5;
+      if (nv > crit.max + 1e-9) return;
+      st.p[crit.field] = nv;
+      abwPruefen(st); save(); renderHead(); renderGradeBox(); renderAbwBox(); refreshAll();
+    });
+    wrap.appendChild(plus);
+  }
+  refreshAll();
   return wrap;
 }
 function escHtml(t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
