@@ -384,7 +384,11 @@ function activate(cfg) {
   document.getElementById("ptsMax").textContent = "/ " + CFG.meta.combination_max;
   setView("kurs");
 }
-function blankStudent(i) { return { k: String(i + 1).padStart(2, "0"), p: {}, w: Object.assign({}, DEFAULT_WAHL), f: "", a: false, ab: 0 }; }
+function blankStudent(i) {
+  const liste = CFG.meta.kuerzel;
+  const k = (Array.isArray(liste) && liste[i]) ? liste[i] : String(i + 1).padStart(2, "0");
+  return { k, p: {}, w: Object.assign({}, DEFAULT_WAHL), f: "", a: false, ab: 0 };
+}
 function freshState(n) {
   return { v: 2, exam: CFG.meta.storage_id, saved: null,
            abgeschlossen: false, abgeschlossen_am: null,
