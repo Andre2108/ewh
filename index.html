@@ -126,10 +126,17 @@ pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--pape
 .pbar{height:5px;background:var(--line);border-radius:3px;margin-top:8px;overflow:hidden;display:flex;flex-basis:100%}
 .pinfo{flex-basis:100%;font-family:var(--mono);font-size:11px;color:var(--soft);margin-top:6px}
 .missListWrap{flex-basis:100%;margin-top:9px}
-.missListLabel{font-family:var(--mono);font-size:11px;color:var(--soft);margin-bottom:5px}
-.missList{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+.missToggle{background:none;border:0;padding:2px 0;font-size:12px;color:var(--soft);
+  cursor:pointer;display:flex;align-items:center;gap:5px}
+.missArrow{font-size:10px;display:inline-block;width:9px}
+.missList{display:flex;flex-direction:column;gap:7px;margin-top:8px}
+.missRow{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .missItem{font-family:var(--mono);font-size:12px;color:#b91c1c;background:#fde8e8;
-  border:1px solid #f0a8a8;border-radius:8px;padding:6px 10px;cursor:pointer;text-align:left}
+  border:1px solid #f0a8a8;border-radius:8px;padding:6px 10px;cursor:pointer;flex:none}
+.missName{flex:1;min-width:130px;padding:7px 9px;border:1px solid var(--line);
+  border-radius:8px;background:var(--card);font-size:16px}
+.missCk{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--soft);
+  white-space:nowrap;flex:none;cursor:pointer}
 .pbar>i{display:block;height:100%}
 .pbar>i.done{background:var(--ok)}
 .pbar>i.part{background:var(--warn)}
@@ -487,21 +494,39 @@ function examProgress(entry) {
   // Gesamtzahl der Arbeiten im Kurs.
   return { gesamt, aktiv: gesamt - fehlend, fehlend, fertig, begonnen, offen: gesamt - fehlend - fertig - begonnen };
 }
-// Kuerzel (+ Name, falls die Kursliste lokal auf diesem Geraet vorliegt) der
-// "fehlt"-markierten Arbeiten - fuer die Uebersicht unter fertig korrigierten
-// Klausuren. Namen kommen ausschliesslich aus dem lokalen Speicher (K_KURS),
-// nie aus Repository/Katalog - siehe Datenschutz-Hinweis in der App.
+// Aktueller Datenstand einer Klausur - bei der gerade geoeffneten zaehlt der
+// Stand im Arbeitsspeicher (siehe istFertig()), sonst der localStorage-Stand.
+function examData(entry) {
+  return (CFG && state && CFG.meta.storage_id === entry.id) ? state : lsGet(K_DATA(entry.id));
+}
+// Kuerzel der "fehlt"-markierten Arbeiten samt lokal eingetragenem Namen und
+// Nachschreib-Haekchen - fuer die Uebersicht unter fertig korrigierten
+// Klausuren. Der Name (Feld "nm") wird direkt am Schueler dieser Klausur
+// gespeichert, rein lokal auf dem Geraet - nie im Sicherungsblock, nie im
+// Repository (siehe missRow()/updateAbsentStudent()).
 function examAbsentList(entry) {
-  const data = lsGet(K_DATA(entry.id));
+  const data = examData(entry);
   if (!data || !data.students) return [];
-  const kl = lsGet(K_KURS(entry.kurs)) || [];
   const out = [];
   data.students.forEach((st, i) => {
     if (!st.a) return;
-    const person = kl[i];
-    out.push({ i, k: st.k || String(i + 1).padStart(2, "0"), name: person ? (person.nach + ", " + person.vor) : null });
+    out.push({ i, k: st.k || String(i + 1).padStart(2, "0"), nm: st.nm || "", ng: !!st.ng });
   });
   return out;
+}
+// Schreibt Name/Nachschreib-Haekchen eines "fehlt"-markierten Schuelers -
+// entweder ins gerade offene Arbeitsspeicher-state (dann per save() debounced
+// wie ueberall sonst) oder direkt in den localStorage-Stand der Klausur.
+function updateAbsentStudent(entry, i, patch) {
+  if (CFG && state && CFG.meta.storage_id === entry.id) {
+    Object.assign(state.students[i], patch);
+    save();
+  } else {
+    const data = lsGet(K_DATA(entry.id));
+    if (!data || !data.students || !data.students[i]) return;
+    Object.assign(data.students[i], patch);
+    lsSet(K_DATA(entry.id), data);
+  }
 }
 /* ---------------- Prozentuales Notenschema (Sek I) ----------------
    JS-Entsprechung von skripte/notenschema_prozentual.py::berechne_notenfindung.
@@ -1024,26 +1049,47 @@ function examRow(e, istFertigFlag, neuIds) {
     info.className = "pinfo";
     info.textContent = teile.length ? teile.join(" · ") : "vollständig";
     row.appendChild(info);
-    // Fehlende Kuerzel direkt unter der fertig korrigierten Klausur - jedes
-    // antippbar, springt direkt auf die Einzelseite (dort "Freischalten"
-    // fuers Nachschreiben). Namen nur, falls die Kursliste lokal vorliegt.
+    // Fehlende Kuerzel direkt unter der fertig korrigierten Klausur, in einem
+    // ausklappbaren Bereich (sonst wird die Kachel bei vielen Fehlenden zu
+    // lang). Kuerzel-Button springt auf die Einzelseite (dort "Freischalten"
+    // fuers Nachschreiben); Namensfeld und Haekchen sind reine lokale
+    // Merkzettel-Funktion fuer die Nachschreib-Planung.
     if (istFertigFlag && pr.fehlend) {
       const missWrap = document.createElement("div");
       missWrap.className = "missListWrap";
-      const label = document.createElement("div");
-      label.className = "missListLabel";
-      label.textContent = "Fehlend:";
-      missWrap.appendChild(label);
+      const toggle = document.createElement("button");
+      toggle.type = "button"; toggle.className = "missToggle";
+      toggle.innerHTML = '<span class="missArrow">▸</span> Fehlend (' + pr.fehlend + ')';
       const list = document.createElement("div");
-      list.className = "missList";
+      list.className = "missList"; list.hidden = true;
+      list.addEventListener("click", ev => ev.stopPropagation());
       examAbsentList(e).forEach(a => {
-        const item = document.createElement("button");
-        item.type = "button"; item.className = "missItem";
-        item.textContent = a.name ? (a.k + " · " + a.name) : a.k;
-        item.addEventListener("click", ev => { ev.stopPropagation(); loadExam(e, a.i); });
-        list.appendChild(item);
+        const r = document.createElement("div");
+        r.className = "missRow";
+        const kb = document.createElement("button");
+        kb.type = "button"; kb.className = "missItem"; kb.textContent = a.k;
+        kb.addEventListener("click", () => loadExam(e, a.i));
+        const nameInp = document.createElement("input");
+        nameInp.type = "text"; nameInp.className = "missName";
+        nameInp.placeholder = "Name (nur auf diesem Gerät)";
+        nameInp.value = a.nm;
+        nameInp.addEventListener("change", () => updateAbsentStudent(e, a.i, { nm: nameInp.value }));
+        const ckLabel = document.createElement("label");
+        ckLabel.className = "missCk";
+        const ck = document.createElement("input");
+        ck.type = "checkbox"; ck.checked = a.ng;
+        ck.addEventListener("change", () => updateAbsentStudent(e, a.i, { ng: ck.checked }));
+        ckLabel.appendChild(ck);
+        ckLabel.appendChild(document.createTextNode("nachgeschrieben"));
+        r.appendChild(kb); r.appendChild(nameInp); r.appendChild(ckLabel);
+        list.appendChild(r);
       });
-      missWrap.appendChild(list);
+      toggle.addEventListener("click", ev => {
+        ev.stopPropagation();
+        list.hidden = !list.hidden;
+        toggle.querySelector(".missArrow").textContent = list.hidden ? "▸" : "▾";
+      });
+      missWrap.appendChild(toggle); missWrap.appendChild(list);
       row.appendChild(missWrap);
     }
   } else if (istFertigFlag) {
