@@ -120,6 +120,7 @@ pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--pape
 .privacy{font-size:12px;color:var(--soft);line-height:1.5;margin:10px 0 0}
 /* Fortschritt je Klausur in der Uebersicht */
 .pbar{height:5px;background:var(--line);border-radius:3px;margin-top:8px;overflow:hidden;display:flex;flex-basis:100%}
+.pinfo{flex-basis:100%;font-family:var(--mono);font-size:11px;color:var(--soft);margin-top:6px}
 .pbar>i{display:block;height:100%}
 .pbar>i.done{background:var(--ok)}
 .pbar>i.part{background:var(--warn)}
@@ -952,16 +953,7 @@ function examRow(e, istFertigFlag, neuIds) {
     // Stand auf DIESEM Geraet - immer aktuell, unabhaengig davon, was der
     // Katalog vom letzten PC-Auswertungslauf noch weiss.
     const pct = pr.aktiv ? Math.round(pr.fertig / pr.aktiv * 100) : 0;
-    st.innerHTML = "";
-    st.appendChild(document.createTextNode(pr.fertig + "/" + pr.aktiv + " fertig · " + pct + "%"));
-    const sm = document.createElement("small");
-    const ausstehend = pr.aktiv - pr.fertig;
-    const teile = [];
-    if (ausstehend > 0) teile.push("ausstehend: " + ausstehend + "/" + pr.aktiv);
-    if (pr.begonnen) teile.push(pr.begonnen + " begonnen");
-    if (pr.fehlend) teile.push(pr.fehlend + " fehlend");
-    sm.textContent = teile.length ? teile.join(" · ") : "vollständig";
-    st.appendChild(sm);
+    st.textContent = pr.fertig + "/" + pr.aktiv + " fertig · " + pct + "%";
     const bar = document.createElement("div");
     bar.className = "pbar";
     const teilBar = (cls, anz) => {
@@ -972,6 +964,17 @@ function examRow(e, istFertigFlag, neuIds) {
     };
     teilBar("done", pr.fertig); teilBar("part", pr.begonnen); teilBar("miss", pr.fehlend);
     row.appendChild(bar);
+    // Details (ausstehend/begonnen/fehlend) unter den Balken statt neben den
+    // Titel - sonst bricht der Titel bei langen Klausurtiteln haesslich um.
+    const ausstehend = pr.aktiv - pr.fertig;
+    const teile = [];
+    if (ausstehend > 0) teile.push("ausstehend: " + ausstehend + "/" + pr.aktiv);
+    if (pr.begonnen) teile.push(pr.begonnen + " begonnen");
+    if (pr.fehlend) teile.push(pr.fehlend + " fehlend");
+    const info = document.createElement("div");
+    info.className = "pinfo";
+    info.textContent = teile.length ? teile.join(" · ") : "vollständig";
+    row.appendChild(info);
   } else if (istFertigFlag) {
     // Kein Stand auf diesem Geraet (z. B. auf einem anderen korrigiert) -
     // letzter vom PC-Auswertungslauf bekannter Stand als Rueckfallebene.
