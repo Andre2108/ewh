@@ -24,6 +24,13 @@
    "fertig_am": "19.08.2026",
    "bewertet": 2,
    "fehlend": 14
+  },
+  {
+   "id": "ewh-party-time-6c",
+   "titel": "It's party time! (Class test no. 1)",
+   "kurs": "E-6c",
+   "datum": "19.08.2026",
+   "file": "klausuren/ewh-party-time-6c.json"
   }
  ]
 }
