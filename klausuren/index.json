@@ -19,7 +19,11 @@
    "titel": "Visions of the future – Written Exam No. 4",
    "kurs": "E LK Q1",
    "datum": "19.08.2026",
-   "file": "klausuren/ewh-visions-of-the-future-e-lk-q1.json"
+   "file": "klausuren/ewh-visions-of-the-future-e-lk-q1.json",
+   "status": "fertig",
+   "fertig_am": "2026-08-19",
+   "bewertet": 2,
+   "fehlend": 14
   }
  ]
 }
