@@ -5,7 +5,18 @@
    "titel": "Spare time, charity events and school trips (Class test no. 3)",
    "kurs": "E-6c",
    "datum": "19.08.2026",
-   "file": "klausuren/ewh-charity-trip-6c.json"
+   "file": "klausuren/ewh-charity-trip-6c.json",
+   "status": "fertig",
+   "fertig_am": "19.08.2026",
+   "bewertet": 14,
+   "fehlend": 15
+  },
+  {
+   "id": "ewh-testklausur",
+   "titel": "Testklausur (nur zum Ausprobieren der App)",
+   "kurs": "TEST",
+   "datum": "19.08.2026",
+   "file": "klausuren/ewh-testklausur.json"
   }
  ]
 }
