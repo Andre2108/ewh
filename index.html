@@ -81,6 +81,9 @@ h3{font-size:15px;margin:20px 0 10px;font-weight:620}
 .tick{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none}
 .tick.part{background:var(--warn)}
 .tick.full{background:var(--ok)}
+.neu-badge{display:inline-block;margin-left:7px;padding:1px 7px;border-radius:999px;
+  background:var(--mark);color:#fff;font-size:10px;font-weight:700;letter-spacing:.03em;
+  vertical-align:1px}
 input[type=text],input[type=number],textarea{width:100%;padding:11px 12px;border:1px solid var(--line);
   border-radius:9px;background:var(--card);font-size:16px}
 textarea{min-height:96px;resize:vertical;line-height:1.45;font-family:var(--mono);font-size:13px}
@@ -263,6 +266,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 "use strict";
 const CATALOG_URL = "klausuren/index.json";
 const K_CATALOG = "ewh:app:catalog";
+const K_SEEN = "ewh:app:seen_ids";
 const K_CFG = id => "ewh:app:cfg:" + id;
 const K_DATA = id => "ewh:" + id;                    // kompatibel zur ersten Fassung
 const K_KURS = kurs => "ewh:app:kurs:" + kurs.replace(/\s+/g, "_");
@@ -863,7 +867,7 @@ function istFertig(e) {
 // Nach Stufe/Kurs gruppiert (Ueberschrift je Kurs), fuer offene wie fertige
 // Arbeiten gleichermassen - so sieht man auf einen Blick, was ein Kurs schon
 // hinter sich hat UND was dort noch ansteht.
-function renderGruppierteListe(host, liste, istFertigFlag) {
+function renderGruppierteListe(host, liste, istFertigFlag, neuIds) {
   host.innerHTML = "";
   const kurse = [];
   liste.forEach(e => { if (kurse.indexOf(e.kurs) < 0) kurse.push(e.kurs); });
@@ -873,23 +877,30 @@ function renderGruppierteListe(host, liste, istFertigFlag) {
     h.textContent = k; h.style.margin = "14px 0 4px";
     if (!host.childNodes.length) h.style.marginTop = "0";
     host.appendChild(h);
-    liste.filter(e => e.kurs === k).forEach(e => host.appendChild(examRow(e, istFertigFlag)));
+    liste.filter(e => e.kurs === k).forEach(e => host.appendChild(examRow(e, istFertigFlag, neuIds)));
   });
 }
 function renderExamList() {
   const host = document.getElementById("examList");
   host.innerHTML = "";
   if (!catalog.length) { host.innerHTML = '<p class="muted" style="margin:0">Noch keine Klausuren hinterlegt.</p>'; return; }
+  // "NEU"-Badge: Klausuren, die seit dem letzten Oeffnen der App neu im
+  // Katalog aufgetaucht sind - rein lokal per localStorage, kein Server/Push
+  // noetig. Nach dem Rendern gilt der aktuelle Katalogstand als gesehen.
+  const gesehen = lsGet(K_SEEN) || [];
+  const neuIds = catalog.filter(e => gesehen.indexOf(e.id) < 0).map(e => e.id);
   const offen = catalog.filter(e => !istFertig(e));
   const fertig = catalog.filter(e => istFertig(e));
   if (!offen.length) host.innerHTML = '<p class="muted" style="margin:0">Alles korrigiert.</p>';
-  else renderGruppierteListe(host, offen, false);
+  else renderGruppierteListe(host, offen, false, neuIds);
 
   const wrap = document.getElementById("doneWrap"), dl = document.getElementById("doneList");
   wrap.hidden = !fertig.length;
-  renderGruppierteListe(dl, fertig, true);
+  renderGruppierteListe(dl, fertig, true, neuIds);
+
+  lsSet(K_SEEN, catalog.map(e => e.id));
 }
-function examRow(e, istFertigFlag) {
+function examRow(e, istFertigFlag, neuIds) {
   const pr = examProgress(e);
   const row = document.createElement("div");
   // Ampel: rot = offen, gelb-orange = angefangen, gruen = fertig.
@@ -899,6 +910,12 @@ function examRow(e, istFertigFlag) {
                   '<span class="sname"></span><span class="sstate"></span>';
   const n = row.querySelector(".sname");
   n.textContent = e.titel;
+  if (neuIds && neuIds.indexOf(e.id) >= 0) {
+    const badge = document.createElement("span");
+    badge.className = "neu-badge";
+    badge.textContent = "NEU";
+    n.appendChild(badge);
+  }
   const s = document.createElement("small");
   s.textContent = e.kurs + " · " + e.datum + (istFertigFlag && e.fertig_am ? " · fertig " + e.fertig_am : "");
   n.appendChild(s);
@@ -948,7 +965,7 @@ function tidyStorage() {
   const weg = [];
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (!k || k.indexOf("ewh:") !== 0 || k === K_CATALOG) continue;
+    if (!k || k.indexOf("ewh:") !== 0 || k === K_CATALOG || k === K_SEEN) continue;
     if (k.indexOf("ewh:app:cfg:") === 0) {
       if (ids.indexOf(k.slice(12)) < 0) weg.push(k);
     } else if (k.indexOf("ewh:app:kurs:") === 0) {
