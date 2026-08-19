@@ -1071,11 +1071,12 @@ function examRow(e, istFertigFlag, neuIds) {
       // hier nichts mehr zu tun, die Aufmerksamkeit soll dann nicht mehr draufliegen.
       const updateToggleLabel = () => {
         const offen = absentEntries.some(a => !a.ng);
+        const n = absentEntries.length;
+        const erledigtText = n === 1 ? "1 Schüler·in hat nachgeschrieben" : n + " Schüler·innen haben nachgeschrieben";
         toggle.innerHTML =
           (offen ? '<span class="missWarn" aria-hidden="true">⚠</span>' : "") +
           '<span class="missArrow">' + (list.hidden ? "▸" : "▾") + '</span>' +
-          (offen ? ' <span class="missLabel">Fehlend</span>' : "") +
-          ' (' + absentEntries.length + ')';
+          (offen ? ' <span class="missLabel">Fehlend</span> (' + n + ')' : " " + erledigtText);
       };
       updateToggleLabel();
       absentEntries.forEach(a => {
