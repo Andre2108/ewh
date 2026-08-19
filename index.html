@@ -125,6 +125,11 @@ pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--pape
 /* Fortschritt je Klausur in der Uebersicht */
 .pbar{height:5px;background:var(--line);border-radius:3px;margin-top:8px;overflow:hidden;display:flex;flex-basis:100%}
 .pinfo{flex-basis:100%;font-family:var(--mono);font-size:11px;color:var(--soft);margin-top:6px}
+.missListWrap{flex-basis:100%;margin-top:9px}
+.missListLabel{font-family:var(--mono);font-size:11px;color:var(--soft);margin-bottom:5px}
+.missList{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+.missItem{font-family:var(--mono);font-size:12px;color:#b91c1c;background:#fde8e8;
+  border:1px solid #f0a8a8;border-radius:8px;padding:6px 10px;cursor:pointer;text-align:left}
 .pbar>i{display:block;height:100%}
 .pbar>i.done{background:var(--ok)}
 .pbar>i.part{background:var(--warn)}
@@ -347,7 +352,7 @@ function katalogAutoErneuern() {
   if (Date.now() - letzterKatalogAbruf < 5000) return;
   loadCatalog(false);
 }
-async function loadExam(entry) {
+async function loadExam(entry, openIdx) {
   const gespeichert = lsGet(K_CFG(entry.id));
   let cfg = gespeichert;
   try {
@@ -368,9 +373,9 @@ async function loadExam(entry) {
   } catch (e) {
     if (!cfg) { flash("Klausur konnte nicht geladen werden"); return; }
   }
-  activate(cfg);
+  activate(cfg, openIdx);
 }
-function activate(cfg) {
+function activate(cfg, openIdx) {
   CFG = cfg;
   ALL = []; WAHL = {}; DEFAULT_WAHL = {};
   // Durchlaufende Nummerierung wie im Word-EWH (generate_ewh_docx.js:
@@ -406,10 +411,11 @@ function activate(cfg) {
     if (typeof state.schwelle !== "number") state.schwelle = CFG.meta.defizitschwelle || 0.5;
     CFG.notenfindung = computeNotenfindung(CFG.meta.combination_max, state.schwelle);
   }
-  idx = 0;
+  const springeZuBewerten = typeof openIdx === "number" && !!state.students[openIdx];
+  idx = springeZuBewerten ? openIdx : 0;
   ["tabKurs", "tabBewerten", "tabSichern"].forEach(t => document.getElementById(t).disabled = false);
   document.getElementById("ptsMax").textContent = "/ " + CFG.meta.combination_max;
-  setView("kurs");
+  setView(springeZuBewerten ? "bewerten" : "kurs");
 }
 function blankStudent(i) {
   const liste = CFG.meta.kuerzel;
@@ -480,6 +486,22 @@ function examProgress(entry) {
   // Bezugsgroesse fuer die Fortschrittsanzeige "X/Y fertig", nicht die
   // Gesamtzahl der Arbeiten im Kurs.
   return { gesamt, aktiv: gesamt - fehlend, fehlend, fertig, begonnen, offen: gesamt - fehlend - fertig - begonnen };
+}
+// Kuerzel (+ Name, falls die Kursliste lokal auf diesem Geraet vorliegt) der
+// "fehlt"-markierten Arbeiten - fuer die Uebersicht unter fertig korrigierten
+// Klausuren. Namen kommen ausschliesslich aus dem lokalen Speicher (K_KURS),
+// nie aus Repository/Katalog - siehe Datenschutz-Hinweis in der App.
+function examAbsentList(entry) {
+  const data = lsGet(K_DATA(entry.id));
+  if (!data || !data.students) return [];
+  const kl = lsGet(K_KURS(entry.kurs)) || [];
+  const out = [];
+  data.students.forEach((st, i) => {
+    if (!st.a) return;
+    const person = kl[i];
+    out.push({ i, k: st.k || String(i + 1).padStart(2, "0"), name: person ? (person.nach + ", " + person.vor) : null });
+  });
+  return out;
 }
 /* ---------------- Prozentuales Notenschema (Sek I) ----------------
    JS-Entsprechung von skripte/notenschema_prozentual.py::berechne_notenfindung.
@@ -570,37 +592,53 @@ function renderSchwelleCard() {
     b.setAttribute("aria-pressed", String(Math.abs(parseFloat(b.dataset.schwelle) - aktiv) < 1e-6));
   });
 }
+function studentRow(i) {
+  const st = state.students[i];
+  const pr = filled(st), pts = total(st), g = grade(pts), done = pr.of > 0 && pr.n === pr.of;
+  const person = kursliste[i];
+  const row = document.createElement("div");
+  row.className = "srow" + (st.a ? " absent" : "");
+  row.innerHTML = '<span class="tick ' + (st.a ? "" : (done ? "full" : (pr.n ? "part" : ""))) + '"></span>' +
+    '<span class="sidx">' + String(i + 1).padStart(2, "0") + '</span>' +
+    '<span class="sname"></span>' +
+    '<span class="sstate ' + (done ? "sdone" : "") + '">' +
+    (st.a ? "fehlt" : (pr.n ? (done ? (pts + " · " + g.kurz) : (pr.n + "/" + pr.of)) : "offen")) + '</span>' +
+    '<button class="missbtn" type="button" aria-pressed="' + (st.a ? "true" : "false") + '">fehlt</button>';
+  const mb = row.querySelector(".missbtn");
+  mb.title = "Hat nicht mitgeschrieben";
+  mb.addEventListener("click", ev => {
+    ev.stopPropagation();
+    if (!st.a && filled(st).n && !confirm("In dieser Arbeit stehen bereits Punkte. Trotzdem als fehlend markieren?")) return;
+    st.a = !st.a; save(); renderKurs(); renderHead();
+  });
+  const nameEl = row.querySelector(".sname");
+  if (person) {
+    nameEl.textContent = person.nach + ", " + person.vor;
+    const small = document.createElement("small"); small.textContent = st.k || person.k;
+    nameEl.appendChild(small);
+  } else { nameEl.textContent = st.k || "—"; }
+  row.addEventListener("click", () => { idx = i; setView("bewerten"); });
+  return row;
+}
 function renderKurs() {
   renderSchwelleCard();
   const host = document.getElementById("studentList");
   host.innerHTML = "";
-  state.students.forEach((st, i) => {
-    const pr = filled(st), pts = total(st), g = grade(pts), done = pr.of > 0 && pr.n === pr.of;
-    const person = kursliste[i];
-    const row = document.createElement("div");
-    row.className = "srow" + (st.a ? " absent" : "");
-    row.innerHTML = '<span class="tick ' + (st.a ? "" : (done ? "full" : (pr.n ? "part" : ""))) + '"></span>' +
-      '<span class="sidx">' + String(i + 1).padStart(2, "0") + '</span>' +
-      '<span class="sname"></span>' +
-      '<span class="sstate ' + (done ? "sdone" : "") + '">' +
-      (st.a ? "fehlt" : (pr.n ? (done ? (pts + " · " + g.kurz) : (pr.n + "/" + pr.of)) : "offen")) + '</span>' +
-      '<button class="missbtn" type="button" aria-pressed="' + (st.a ? "true" : "false") + '">fehlt</button>';
-    const mb = row.querySelector(".missbtn");
-    mb.title = "Hat nicht mitgeschrieben";
-    mb.addEventListener("click", ev => {
-      ev.stopPropagation();
-      if (!st.a && filled(st).n && !confirm("In dieser Arbeit stehen bereits Punkte. Trotzdem als fehlend markieren?")) return;
-      st.a = !st.a; save(); renderKurs(); renderHead();
-    });
-    const nameEl = row.querySelector(".sname");
-    if (person) {
-      nameEl.textContent = person.nach + ", " + person.vor;
-      const small = document.createElement("small"); small.textContent = st.k || person.k;
-      nameEl.appendChild(small);
-    } else { nameEl.textContent = st.k || "—"; }
-    row.addEventListener("click", () => { idx = i; setView("bewerten"); });
-    host.appendChild(row);
-  });
+  // Zwei Kategorien statt einer durchgehenden Liste: wer verpasst hat,
+  // braucht als erstes einen Ueberblick zum Nachschreiben, unabhaengig davon,
+  // ob die Korrektur schon fertig ist.
+  const teilgenommen = [], verpasst = [];
+  state.students.forEach((st, i) => (st.a ? verpasst : teilgenommen).push(i));
+  const addGroup = (titel, indices) => {
+    if (!indices.length) return;
+    const h = document.createElement("h3");
+    h.textContent = titel;
+    h.style.margin = host.childNodes.length ? "20px 0 8px" : "0 0 8px";
+    host.appendChild(h);
+    indices.forEach(i => host.appendChild(studentRow(i)));
+  };
+  addGroup("An Leistungsüberprüfung teilgenommen", teilgenommen);
+  addGroup("Leistungsüberprüfung verpasst", verpasst);
   const fehlt = missing();
   const fertigN = state.students.filter(s => { const p = filled(s); return p.of && p.n === p.of; }).length;
   document.getElementById("missInfo").textContent =
@@ -986,6 +1024,28 @@ function examRow(e, istFertigFlag, neuIds) {
     info.className = "pinfo";
     info.textContent = teile.length ? teile.join(" · ") : "vollständig";
     row.appendChild(info);
+    // Fehlende Kuerzel direkt unter der fertig korrigierten Klausur - jedes
+    // antippbar, springt direkt auf die Einzelseite (dort "Freischalten"
+    // fuers Nachschreiben). Namen nur, falls die Kursliste lokal vorliegt.
+    if (istFertigFlag && pr.fehlend) {
+      const missWrap = document.createElement("div");
+      missWrap.className = "missListWrap";
+      const label = document.createElement("div");
+      label.className = "missListLabel";
+      label.textContent = "Fehlend:";
+      missWrap.appendChild(label);
+      const list = document.createElement("div");
+      list.className = "missList";
+      examAbsentList(e).forEach(a => {
+        const item = document.createElement("button");
+        item.type = "button"; item.className = "missItem";
+        item.textContent = a.name ? (a.k + " · " + a.name) : a.k;
+        item.addEventListener("click", ev => { ev.stopPropagation(); loadExam(e, a.i); });
+        list.appendChild(item);
+      });
+      missWrap.appendChild(list);
+      row.appendChild(missWrap);
+    }
   } else if (istFertigFlag) {
     // Kein Stand auf diesem Geraet (z. B. auf einem anderen korrigiert) -
     // letzter vom PC-Auswertungslauf bekannter Stand als Rueckfallebene.
