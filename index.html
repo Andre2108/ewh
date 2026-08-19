@@ -414,7 +414,10 @@ function activate(cfg, openIdx) {
   }));
   state = lsGet(K_DATA(CFG.meta.storage_id)) || freshState(CFG.meta.n_students || 30);
   if (!state.students || !state.students.length) state = freshState(CFG.meta.n_students || 30);
-  state.students.forEach(s => { s.w = Object.assign({}, DEFAULT_WAHL, s.w || {}); s.p = s.p || {}; s.a = !!s.a; abwPruefen(s); });
+  // "wa" (war abwesend): bleibt dauerhaft gesetzt, auch nach "Freischalten" -
+  // damit jemand, der urspruenglich fehlte und spaeter nachgeschrieben hat,
+  // in der Fehlend-Uebersicht sichtbar bleibt statt spurlos zu verschwinden.
+  state.students.forEach(s => { s.w = Object.assign({}, DEFAULT_WAHL, s.w || {}); s.p = s.p || {}; s.a = !!s.a; s.wa = !!(s.wa || s.a); abwPruefen(s); });
   kursliste = lsGet(K_KURS(CFG.meta.kurs)) || [];
   if (istProzentual()) {
     if (typeof state.schwelle !== "number") state.schwelle = CFG.meta.defizitschwelle || 0.5;
@@ -511,7 +514,11 @@ function examAbsentList(entry) {
   if (!data || !data.students) return [];
   const out = [];
   data.students.forEach((st, i) => {
-    if (!st.a) return;
+    // "wa" (war abwesend) statt "a" (aktuell gesperrt): wer inzwischen per
+    // "Freischalten" bewertet wurde, bleibt hier trotzdem sichtbar - als
+    // nachgeschrieben, nicht spurlos verschwunden. "|| st.a" faengt alte
+    // Staende ab, die "wa" noch nicht kennen.
+    if (!st.wa && !st.a) return;
     out.push({ i, k: st.k || String(i + 1).padStart(2, "0"), nm: st.nm || "", ng: !!st.ng });
   });
   return out;
@@ -636,7 +643,9 @@ function studentRow(i) {
   mb.addEventListener("click", ev => {
     ev.stopPropagation();
     if (!st.a && filled(st).n && !confirm("In dieser Arbeit stehen bereits Punkte. Trotzdem als fehlend markieren?")) return;
-    st.a = !st.a; save(); renderKurs(); renderHead();
+    st.a = !st.a;
+    if (st.a) st.wa = true;
+    save(); renderKurs(); renderHead();
   });
   const nameEl = row.querySelector(".sname");
   if (person) {
@@ -1056,8 +1065,8 @@ function examRow(e, istFertigFlag, neuIds) {
     // lang). Kuerzel-Button springt auf die Einzelseite (dort "Freischalten"
     // fuers Nachschreiben); Namensfeld und Haekchen sind reine lokale
     // Merkzettel-Funktion fuer die Nachschreib-Planung.
-    if (istFertigFlag && pr.fehlend) {
-      const absentEntries = examAbsentList(e);
+    const absentEntries = examAbsentList(e);
+    if (istFertigFlag && absentEntries.length) {
       const missWrap = document.createElement("div");
       missWrap.className = "missListWrap";
       const toggle = document.createElement("button");
@@ -1065,18 +1074,20 @@ function examRow(e, istFertigFlag, neuIds) {
       const list = document.createElement("div");
       list.className = "missList"; list.hidden = true;
       list.addEventListener("click", ev => ev.stopPropagation());
-      // Warnzeichen + das Wort "Fehlend" (fett/rot) nur, solange nicht alle
-      // noch als "fehlt" gefuehrten Arbeiten entweder abgehakt sind oder
-      // (per Freischalten) inzwischen ganz aus der Liste raus sind - dann ist
-      // hier nichts mehr zu tun, die Aufmerksamkeit soll dann nicht mehr draufliegen.
+      // Warnzeichen + das Wort "Fehlend" (fett/rot) nur, solange noch nicht
+      // alle abgehakt sind - die Zahl daneben zaehlt dabei nur die noch
+      // offenen (nicht abgehakten), nicht alle, die je gefehlt haben. Sind
+      // alle abgehakt (manuell oder automatisch per "Freischalten"), zeigt
+      // die Zeile stattdessen die Gesamtzahl als erledigte Nachschreibungen -
+      // die Zeile selbst bleibt sichtbar, das ist die Nachschreib-Bilanz.
       const updateToggleLabel = () => {
-        const offen = absentEntries.some(a => !a.ng);
+        const offenN = absentEntries.filter(a => !a.ng).length;
         const n = absentEntries.length;
         const erledigtText = n === 1 ? "1 Schüler·in hat nachgeschrieben" : n + " Schüler·innen haben nachgeschrieben";
         toggle.innerHTML =
-          (offen ? '<span class="missWarn" aria-hidden="true">⚠</span>' : "") +
+          (offenN ? '<span class="missWarn" aria-hidden="true">⚠</span>' : "") +
           '<span class="missArrow">' + (list.hidden ? "▸" : "▾") + '</span>' +
-          (offen ? ' <span class="missLabel">Fehlend</span> (' + n + ')' : " " + erledigtText);
+          (offenN ? ' <span class="missLabel">Fehlend</span> (' + offenN + ')' : " " + erledigtText);
       };
       updateToggleLabel();
       absentEntries.forEach(a => {
@@ -1262,7 +1273,10 @@ function setView(v) {
   // spaeter nachgeschrieben wurde) - dieselbe Aenderung wie der missbtn in
   // der Kursuebersicht, nur direkt von der Bewertungsseite aus erreichbar.
   document.getElementById("unlockBtn").onclick = () => {
-    state.students[idx].a = false; save(); setView("bewerten");
+    const st = state.students[idx];
+    // "wa" bleibt gesetzt (siehe activate()) - diese Arbeit gehoert weiterhin
+    // zur Fehlend-Uebersicht, zaehlt dort aber ab jetzt als nachgeschrieben.
+    st.a = false; st.ng = true; save(); setView("bewerten");
   };
   document.getElementById("kuerzelInput").addEventListener("input", e => { state.students[idx].k = e.target.value; save(); renderHead(); });
   document.getElementById("fokusInput").addEventListener("input", e => { state.students[idx].f = e.target.value; save(); });
