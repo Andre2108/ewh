@@ -6,6 +6,13 @@
    "kurs": "D-8a",
    "datum": "12.05.2022",
    "file": "klausuren/ewh-wilhelm-tell-nachschrift-8a.json"
+  },
+  {
+   "id": "ewh-gender-identity-e-lk-q2",
+   "titel": "Gender & Identity – Written Exam No. 1",
+   "kurs": "E LK Q2",
+   "datum": "19.08.2026",
+   "file": "klausuren/ewh-gender-identity-e-lk-q2.json"
   }
  ]
 }
