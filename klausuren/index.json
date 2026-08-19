@@ -1,3 +1,11 @@
 {
- "klausuren": []
+ "klausuren": [
+  {
+   "id": "ewh-charity-trip-6c",
+   "titel": "Spare time, charity events and school trips (Class test no. 3)",
+   "kurs": "E-6c",
+   "datum": "19.08.2026",
+   "file": "klausuren/ewh-charity-trip-6c.json"
+  }
+ ]
 }
