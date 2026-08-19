@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Arbeiten bewerten">
 <meta name="theme-color" content="#14212e">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <title>Arbeiten bewerten</title>
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%2314212e'/><text x='90' y='134' font-size='124' font-weight='600' font-family='-apple-system,BlinkMacSystemFont,Helvetica,sans-serif' fill='%23ffffff' text-anchor='middle'>A</text></svg>">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%2314212e'/><text x='90' y='134' font-size='124' font-weight='600' font-family='-apple-system,BlinkMacSystemFont,Helvetica,sans-serif' fill='%23ffffff' text-anchor='middle'>A</text></svg>">
@@ -1037,7 +1039,13 @@ function setView(v) {
   document.getElementById("tabKurs").onclick = () => { if (CFG) setView("kurs"); };
   document.getElementById("tabBewerten").onclick = () => { if (CFG) setView("bewerten"); };
   document.getElementById("tabSichern").onclick = () => { if (CFG) setView("sichern"); };
-  document.getElementById("refreshBtn").onclick = () => loadCatalog(true);
+  // Ladet nicht nur die Klausurliste neu, sondern die App-Huelle selbst (echter
+  // Seiten-Reload) - sonst bleibt ein bereits geoeffneter Tab/PWA-Screen auf
+  // altem JS/CSS haengen, selbst wenn Server und Katalog laengst aktuell sind.
+  document.getElementById("refreshBtn").onclick = () => {
+    flash("Aktualisiere …");
+    setTimeout(() => location.reload(), 150);
+  };
   document.getElementById("tidyBtn").onclick = () => {
     const weg = tidyStorage();
     if (!weg.length) { flash("Nichts aufzuräumen"); return; }
