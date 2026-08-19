@@ -129,6 +129,8 @@ pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--pape
 .missToggle{background:none;border:0;padding:2px 0;font-size:12px;color:var(--soft);
   cursor:pointer;display:flex;align-items:center;gap:5px}
 .missArrow{font-size:10px;display:inline-block;width:9px}
+.missWarn{color:#c00000;font-size:14px;line-height:1}
+.missLabel{color:#c00000;font-weight:700}
 .missList{display:flex;flex-direction:column;gap:7px;margin-top:8px}
 .missRow{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .missItem{font-family:var(--mono);font-size:12px;color:#b91c1c;background:#fde8e8;
@@ -1055,15 +1057,28 @@ function examRow(e, istFertigFlag, neuIds) {
     // fuers Nachschreiben); Namensfeld und Haekchen sind reine lokale
     // Merkzettel-Funktion fuer die Nachschreib-Planung.
     if (istFertigFlag && pr.fehlend) {
+      const absentEntries = examAbsentList(e);
       const missWrap = document.createElement("div");
       missWrap.className = "missListWrap";
       const toggle = document.createElement("button");
       toggle.type = "button"; toggle.className = "missToggle";
-      toggle.innerHTML = '<span class="missArrow">▸</span> Fehlend (' + pr.fehlend + ')';
       const list = document.createElement("div");
       list.className = "missList"; list.hidden = true;
       list.addEventListener("click", ev => ev.stopPropagation());
-      examAbsentList(e).forEach(a => {
+      // Warnzeichen + das Wort "Fehlend" (fett/rot) nur, solange nicht alle
+      // noch als "fehlt" gefuehrten Arbeiten entweder abgehakt sind oder
+      // (per Freischalten) inzwischen ganz aus der Liste raus sind - dann ist
+      // hier nichts mehr zu tun, die Aufmerksamkeit soll dann nicht mehr draufliegen.
+      const updateToggleLabel = () => {
+        const offen = absentEntries.some(a => !a.ng);
+        toggle.innerHTML =
+          (offen ? '<span class="missWarn" aria-hidden="true">⚠</span>' : "") +
+          '<span class="missArrow">' + (list.hidden ? "▸" : "▾") + '</span>' +
+          (offen ? ' <span class="missLabel">Fehlend</span>' : "") +
+          ' (' + absentEntries.length + ')';
+      };
+      updateToggleLabel();
+      absentEntries.forEach(a => {
         const r = document.createElement("div");
         r.className = "missRow";
         const kb = document.createElement("button");
@@ -1078,7 +1093,11 @@ function examRow(e, istFertigFlag, neuIds) {
         ckLabel.className = "missCk";
         const ck = document.createElement("input");
         ck.type = "checkbox"; ck.checked = a.ng;
-        ck.addEventListener("change", () => updateAbsentStudent(e, a.i, { ng: ck.checked }));
+        ck.addEventListener("change", () => {
+          a.ng = ck.checked;
+          updateAbsentStudent(e, a.i, { ng: ck.checked });
+          updateToggleLabel();
+        });
         ckLabel.appendChild(ck);
         ckLabel.appendChild(document.createTextNode("nachgeschrieben"));
         r.appendChild(kb); r.appendChild(nameInp); r.appendChild(ckLabel);
@@ -1087,7 +1106,7 @@ function examRow(e, istFertigFlag, neuIds) {
       toggle.addEventListener("click", ev => {
         ev.stopPropagation();
         list.hidden = !list.hidden;
-        toggle.querySelector(".missArrow").textContent = list.hidden ? "▸" : "▾";
+        updateToggleLabel();
       });
       missWrap.appendChild(toggle); missWrap.appendChild(list);
       row.appendChild(missWrap);
