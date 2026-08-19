@@ -468,7 +468,10 @@ function examProgress(entry) {
     if (soll && gesetzt >= soll) fertig++; else begonnen++;
   });
   const gesamt = data.students.length;
-  return { gesamt, fehlend, fertig, begonnen, offen: gesamt - fehlend - fertig - begonnen };
+  // "aktiv" = tatsaechlich zu bewertende Arbeiten (ohne "fehlt"-markierte) -
+  // Bezugsgroesse fuer die Fortschrittsanzeige "X/Y fertig", nicht die
+  // Gesamtzahl der Arbeiten im Kurs.
+  return { gesamt, aktiv: gesamt - fehlend, fehlend, fertig, begonnen, offen: gesamt - fehlend - fertig - begonnen };
 }
 /* ---------------- Prozentuales Notenschema (Sek I) ----------------
    JS-Entsprechung von skripte/notenschema_prozentual.py::berechne_notenfindung.
@@ -948,13 +951,13 @@ function examRow(e, istFertigFlag, neuIds) {
   if (pr) {
     // Stand auf DIESEM Geraet - immer aktuell, unabhaengig davon, was der
     // Katalog vom letzten PC-Auswertungslauf noch weiss.
-    const pct = pr.gesamt ? Math.round(pr.fertig / pr.gesamt * 100) : 0;
+    const pct = pr.aktiv ? Math.round(pr.fertig / pr.aktiv * 100) : 0;
     st.innerHTML = "";
-    st.appendChild(document.createTextNode(pr.fertig + "/" + pr.gesamt + " fertig · " + pct + "%"));
+    st.appendChild(document.createTextNode(pr.fertig + "/" + pr.aktiv + " fertig · " + pct + "%"));
     const sm = document.createElement("small");
-    const ausstehend = pr.gesamt - pr.fertig;
+    const ausstehend = pr.aktiv - pr.fertig;
     const teile = [];
-    if (ausstehend > 0) teile.push("ausstehend: " + ausstehend + "/" + pr.gesamt);
+    if (ausstehend > 0) teile.push("ausstehend: " + ausstehend + "/" + pr.aktiv);
     if (pr.begonnen) teile.push(pr.begonnen + " begonnen");
     if (pr.fehlend) teile.push(pr.fehlend + " fehlend");
     sm.textContent = teile.length ? teile.join(" · ") : "vollständig";
