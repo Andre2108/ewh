@@ -346,15 +346,29 @@ async function loadExam(entry) {
 function activate(cfg) {
   CFG = cfg;
   ALL = []; WAHL = {}; DEFAULT_WAHL = {};
+  // Durchlaufende Nummerierung wie im Word-EWH (generate_ewh_docx.js:
+  // nextNr()) selbst erzeugen, statt ein evtl. in der Config gesetztes "nr"
+  // zu uebernehmen: Wahlaufgaben-Optionen (3a/3b) und die amtlich fixierte
+  // Darstellungsleistung (aus fixed_blocks.json) bringen dort nie eine eigene
+  // Nummer mit - App und Word zeigen so garantiert dieselben Nummern.
+  let nr = 0;
   CFG.sections.forEach(sec => sec.groups.forEach((grp, gi) => {
     const gkey = sec.key + ":" + gi;
     if (grp.type === "wahlaufgabe") {
       WAHL[gkey] = { options: grp.options.map(o => ({ key: o.key, fields: o.criteria.map(c => c.field) })) };
       DEFAULT_WAHL[gkey] = grp.options[0].key;
-      grp.options.forEach(o => o.criteria.forEach(c =>
-        ALL.push(Object.assign({}, c, { sec: sec.key, gkey, wahl: o.key }))));
+      // c.nr wird direkt auf dem Config-Objekt gesetzt (nicht nur auf der
+      // Kopie in ALL), da renderBewerten() ueber grp.criteria/o.criteria
+      // dieselben Objekte direkt an critBlock() weiterreicht.
+      grp.options.forEach(o => o.criteria.forEach(c => {
+        c.nr = ++nr;
+        ALL.push(Object.assign({}, c, { sec: sec.key, gkey, wahl: o.key }));
+      }));
     } else {
-      grp.criteria.forEach(c => ALL.push(Object.assign({}, c, { sec: sec.key, gkey, wahl: null })));
+      grp.criteria.forEach(c => {
+        c.nr = ++nr;
+        ALL.push(Object.assign({}, c, { sec: sec.key, gkey, wahl: null }));
+      });
     }
   }));
   state = lsGet(K_DATA(CFG.meta.storage_id)) || freshState(CFG.meta.n_students || 30);
