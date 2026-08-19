@@ -36,6 +36,14 @@ h3{font-size:15px;margin:20px 0 10px;font-weight:620}
 .top-in{max-width:680px;margin:0 auto}
 .exam{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
   color:var(--soft);margin-bottom:3px}
+.topHead{display:flex;align-items:center;gap:9px}
+.topMain{flex:1;min-width:0}
+.navArrow{flex:none;width:38px;height:38px;border:1px solid var(--line);background:var(--card);
+  border-radius:9px;font-size:20px;line-height:1;cursor:pointer;display:flex;
+  align-items:center;justify-content:center;padding:0}
+.navArrow:disabled{opacity:.35}
+.ctxAbsent{font-family:var(--mono);font-size:12px;font-weight:620;color:#b91c1c;
+  background:#fde8e8;display:inline-block;padding:3px 9px;border-radius:999px;margin-top:7px}
 .score{display:flex;align-items:baseline;gap:8px;margin-top:9px}
 .score .pts{font-family:var(--mono);font-size:26px;font-weight:640;line-height:1}
 .score .of{font-family:var(--mono);font-size:13px;color:var(--soft)}
@@ -154,8 +162,15 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 <body>
 
 <div class="top"><div class="top-in">
-  <div class="exam" id="ctxExam">Arbeiten bewerten</div>
-  <h1 id="ctxTitle">Leistungsüberprüfungen</h1>
+  <div class="topHead">
+    <button class="navArrow" id="ctxPrev" type="button" aria-label="Vorherige Arbeit" hidden>‹</button>
+    <div class="topMain">
+      <div class="exam" id="ctxExam">Arbeiten bewerten</div>
+      <h1 id="ctxTitle">Leistungsüberprüfungen</h1>
+      <div class="ctxAbsent" id="ctxAbsent" hidden>fehlt — nicht mitgeschrieben</div>
+    </div>
+    <button class="navArrow" id="ctxNext" type="button" aria-label="Nächste Arbeit" hidden>›</button>
+  </div>
   <div class="score" id="scoreBox" hidden>
     <span class="pts" id="pts">0</span>
     <span class="of" id="ptsMax">/ 0</span>
@@ -836,8 +851,11 @@ function renderHead() {
   // geoeffneten Klausur in die Kopfzeile - die Uebersicht ist klausurneutral.
   document.getElementById("ctxExam").textContent =
     (CFG && view !== "klausuren") ? (CFG.meta.kurs + " · " + CFG.meta.datum) : "Arbeiten bewerten";
+  const ctxPrev = document.getElementById("ctxPrev"), ctxNext = document.getElementById("ctxNext");
+  const ctxAbsent = document.getElementById("ctxAbsent");
   if (view !== "bewerten") {
     box.hidden = true; bw.hidden = true;
+    ctxPrev.hidden = true; ctxNext.hidden = true; ctxAbsent.hidden = true;
     document.getElementById("ctxTitle").textContent =
       view === "klausuren" ? "Leistungsüberprüfungen" : (view === "kurs" ? (CFG ? CFG.meta.exam_title : "Kurs") : "Sichern");
     return;
@@ -851,6 +869,12 @@ function renderHead() {
   document.getElementById("notePts").textContent = istProzentual() ? "" : (pr.n ? (g.np + " P.") : "–");
   document.getElementById("bar").style.width = (pr.of ? (pr.n / pr.of * 100) : 0) + "%";
   box.hidden = false; bw.hidden = false;
+  // Gleiche Logik wie prevBtn/nextBtn unten auf der Seite (siehe renderBewerten):
+  // bei der ersten Arbeit ergibt "vorherige" keinen Sinn, ganz ausblenden.
+  ctxPrev.hidden = (idx === 0);
+  ctxNext.hidden = false;
+  ctxNext.disabled = (idx >= state.students.length - 1);
+  ctxAbsent.hidden = !st.a;
 }
 /* Ob eine Klausur als fertig gilt, entscheidet zuerst der Stand auf diesem
    Geraet: Wird die Markierung gesetzt oder wieder aufgehoben, wandert die
@@ -1089,6 +1113,8 @@ function setView(v) {
 
   document.getElementById("prevBtn").onclick = () => { if (idx > 0) { idx--; setView("bewerten"); } };
   document.getElementById("nextBtn").onclick = () => { if (idx < state.students.length - 1) { idx++; setView("bewerten"); } };
+  document.getElementById("ctxPrev").onclick = () => { if (idx > 0) { idx--; setView("bewerten"); } };
+  document.getElementById("ctxNext").onclick = () => { if (idx < state.students.length - 1) { idx++; setView("bewerten"); } };
   document.getElementById("kuerzelInput").addEventListener("input", e => { state.students[idx].k = e.target.value; save(); renderHead(); });
   document.getElementById("fokusInput").addEventListener("input", e => { state.students[idx].f = e.target.value; save(); });
 
