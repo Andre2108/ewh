@@ -678,9 +678,12 @@ function tapRow(st, crit, onChange) {
   return wrap;
 }
 function escHtml(t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-// Hebt den Kern jedes Stichpunkts hervor: alles vor dem ersten Doppelpunkt,
-// sonst die ersten drei Woerter — damit beim Ueberfliegen etwas haengen bleibt.
+// Hebt den Kern jedes Stichpunkts hervor. Bevorzugt wird eine explizite
+// **Markierung** aus der Config (die tatsaechlich wichtigsten Woerter, von
+// Hand gesetzt); nur wenn keine vorhanden ist, greift der alte Notbehelf
+// (Text vor dem ersten Doppelpunkt, sonst die ersten drei Woerter).
 function bulletHtml(t) {
+  if (t.indexOf("**") !== -1) return escHtml(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
   const i = t.indexOf(": ");
   if (i > 0 && i <= 70) return "<b>" + escHtml(t.slice(0, i)) + "</b>" + escHtml(t.slice(i));
   const w = t.split(" ");
