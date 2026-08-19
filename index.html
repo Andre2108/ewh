@@ -42,8 +42,11 @@ h3{font-size:15px;margin:20px 0 10px;font-weight:620}
   border-radius:9px;font-size:20px;line-height:1;cursor:pointer;display:flex;
   align-items:center;justify-content:center;padding:0}
 .navArrow:disabled{opacity:.35}
-.ctxAbsent{font-family:var(--mono);font-size:12px;font-weight:620;color:#b91c1c;
-  background:#fde8e8;display:inline-block;padding:3px 9px;border-radius:999px;margin-top:7px}
+.ctxAbsent{display:flex;align-items:center;gap:9px;margin-top:7px}
+.ctxAbsent span{font-family:var(--mono);font-size:12px;font-weight:620;color:#b91c1c;
+  background:#fde8e8;display:inline-block;padding:3px 9px;border-radius:999px}
+.ctxAbsent button{font-size:12px;padding:4px 10px;border:1px solid var(--line);
+  background:var(--card);border-radius:999px;cursor:pointer;color:var(--mark);font-weight:620}
 .score{display:flex;align-items:baseline;gap:8px;margin-top:9px}
 .score .pts{font-family:var(--mono);font-size:26px;font-weight:640;line-height:1}
 .score .of{font-family:var(--mono);font-size:13px;color:var(--soft)}
@@ -74,6 +77,7 @@ h3{font-size:15px;margin:20px 0 10px;font-weight:620}
 .tap[aria-pressed="true"]{background:var(--mark);border-color:var(--mark);color:#fff;font-weight:640}
 .tap.half{border-style:dashed;margin-left:4px}
 .tap.half[aria-pressed="true"]{border-style:solid;border-color:var(--mark);background:var(--card);color:var(--mark);font-weight:640}
+.tap:disabled{opacity:.35;cursor:not-allowed}
 .seg{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap}
 .seg button{flex:1;min-width:140px;padding:12px 10px;border:1px solid var(--line);
   background:var(--card);border-radius:9px;font-size:14px;cursor:pointer}
@@ -168,7 +172,10 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     <div class="topMain">
       <div class="exam" id="ctxExam">Arbeiten bewerten</div>
       <h1 id="ctxTitle">Leistungsüberprüfungen</h1>
-      <div class="ctxAbsent" id="ctxAbsent" hidden>fehlt — nicht mitgeschrieben</div>
+      <div class="ctxAbsent" id="ctxAbsent" hidden>
+        <span>fehlt — nicht mitgeschrieben</span>
+        <button type="button" id="unlockBtn">Freischalten</button>
+      </div>
     </div>
     <button class="navArrow" id="ctxNext" type="button" aria-label="Nächste Arbeit" hidden>›</button>
   </div>
@@ -668,6 +675,10 @@ function tapRow(st, crit, onChange) {
     wrap.appendChild(plus);
   }
   refreshAll();
+  // "fehlt"-markierte Arbeiten: Bewertungsbuttons gesperrt, bis oben in der
+  // Kopfzeile "Freischalten" angetippt wird (siehe ctxAbsent/renderHead) -
+  // verhindert versehentliche Punkte fuer jemanden, der nicht mitgeschrieben hat.
+  if (st.a) wrap.querySelectorAll("button").forEach(b => { b.disabled = true; });
   return wrap;
 }
 function escHtml(t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
@@ -1121,6 +1132,12 @@ function setView(v) {
   document.getElementById("nextBtn").onclick = () => { if (idx < state.students.length - 1) { idx++; setView("bewerten"); } };
   document.getElementById("ctxPrev").onclick = () => { if (idx > 0) { idx--; setView("bewerten"); } };
   document.getElementById("ctxNext").onclick = () => { if (idx < state.students.length - 1) { idx++; setView("bewerten"); } };
+  // Freischalten: hebt die "fehlt"-Markierung auf (z. B. weil die Arbeit
+  // spaeter nachgeschrieben wurde) - dieselbe Aenderung wie der missbtn in
+  // der Kursuebersicht, nur direkt von der Bewertungsseite aus erreichbar.
+  document.getElementById("unlockBtn").onclick = () => {
+    state.students[idx].a = false; save(); setView("bewerten");
+  };
   document.getElementById("kuerzelInput").addEventListener("input", e => { state.students[idx].k = e.target.value; save(); renderHead(); });
   document.getElementById("fokusInput").addEventListener("input", e => { state.students[idx].f = e.target.value; save(); });
 
