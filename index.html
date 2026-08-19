@@ -20,14 +20,15 @@
   --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{touch-action:manipulation}
 html,body{margin:0;padding:0}
 body{background:var(--paper);color:var(--ink);font-family:var(--sans);
   -webkit-text-size-adjust:100%}
 button,input,textarea,select{font:inherit;color:inherit}
 .wrap{max-width:680px;margin:0 auto;padding:0 14px 96px}
 h1{font-size:19px;line-height:1.25;letter-spacing:-.01em;margin:0;font-weight:640}
-h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--soft);
-  margin:24px 0 10px;font-weight:620}
+h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);
+  margin:26px 0 10px;font-weight:750;border-bottom:2px solid var(--mark);padding-bottom:5px}
 h3{font-size:15px;margin:20px 0 10px;font-weight:620}
 .muted{color:var(--soft);font-size:13px;line-height:1.5}
 .top{position:sticky;top:0;z-index:20;background:var(--paper);
@@ -51,6 +52,9 @@ h3{font-size:15px;margin:20px 0 10px;font-weight:620}
 .cnr{font-family:var(--mono);font-size:12px;color:var(--soft);flex:none;padding-top:2px;min-width:20px}
 .ctext{flex:1;font-size:15px;line-height:1.4}
 .cmax{font-family:var(--mono);font-size:12px;color:var(--soft);flex:none;padding-top:2px}
+/* Buendig mit dem Kriteriumstext (.ctext), nicht mit dessen Nummer (.cnr):
+   .cnr ist min. 20px breit, .chead hat 10px gap - macht 30px Einzug. */
+.crit>.more,.crit>.long,.crit>.taps{margin-left:30px}
 .more{background:none;border:0;color:var(--mark);font-size:13px;padding:6px 0 0;cursor:pointer}
 .long{margin:9px 0 0;padding:11px 12px;background:var(--paper);border-radius:9px;font-size:14px;line-height:1.5}
 .long p{margin:0 0 8px}
@@ -110,6 +114,11 @@ pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--pape
 .pbar>i.part{background:var(--warn)}
 .pbar>i.miss{background:#f0a8a8;width:auto;border:0;border-radius:0;height:100%}
 .srow.stack{flex-wrap:wrap}
+/* Ampelfarben in der Uebersicht: rot offen, gelb-orange angefangen, gruen fertig */
+.examrow{border-radius:10px;padding:11px 12px;margin-bottom:7px;border-top:0}
+.examrow.st-open{background:#fbe9e7}
+.examrow.st-part{background:#fdf0d5}
+.examrow.st-done{background:#e3f3e3}
 .sstate small{display:block;font-family:var(--mono);font-size:11px;color:var(--soft);font-weight:400}
 /* Farbhinterlegung: Blaustufen je Teilaufgabe, Gruen fuer die Darstellungsleistung */
 .card.g-i0{background:#f4f8fd}
@@ -143,7 +152,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 
 <div class="top"><div class="top-in">
   <div class="exam" id="ctxExam">Arbeiten bewerten</div>
-  <h1 id="ctxTitle">Klausuren</h1>
+  <h1 id="ctxTitle">Leistungsüberprüfungen</h1>
   <div class="score" id="scoreBox" hidden>
     <span class="pts" id="pts">0</span>
     <span class="of" id="ptsMax">/ 0</span>
@@ -180,28 +189,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     <h2>Arbeiten im Kurs</h2>
     <div class="card" id="studentList"></div>
     <p class="muted" style="margin:2px 0 0">Mit <b>fehlt</b> markierst du, wer nicht mitgeschrieben hat: zählt nicht als offen, bleibt in der Excel-Tabelle hellrot und leer.</p>
-    <h2>Anzahl und Fehlende</h2>
-    <div class="card">
-      <div class="row">
-        <input type="number" id="countInput" min="1" max="60" style="flex:1;min-width:110px" inputmode="numeric">
-        <button class="btn" id="applyCount">Anzahl übernehmen</button>
-      </div>
-      <p class="muted" id="missInfo" style="margin:11px 0 0"></p>
-    </div>
-    <h2>Kursliste</h2>
-    <div class="card">
-      <button class="btn quiet" id="kursCopy" style="width:100%">Für Excel kopieren</button>
-      <p class="muted" style="margin:11px 0 0">Fügt die Namen ab Zelle <b>B3</b> ein — Spalte A bleibt das Kürzel, damit du Zeile für Zeile prüfen kannst, ob beides zusammengehört.</p>
-      <details class="opt" style="margin-top:11px">
-        <summary>Kursliste hinterlegen (optional)</summary>
-        <p class="muted" style="margin:9px 0 10px">Eine Zeile je Person: <b>Nachname · Vorname · E-Mail</b>, getrennt durch Tabulator oder Semikolon. Bleibt auf diesem Gerät.</p>
-        <textarea id="kursInput" placeholder="Sielberg;Anna;anna.sielberg@…"></textarea>
-        <div class="row" style="margin-top:10px">
-          <button class="btn" id="kursApply">Kursliste übernehmen</button>
-        </div>
-        <p class="muted" id="kursInfo" style="margin:11px 0 0"></p>
-      </details>
-    </div>
+    <p class="muted" id="missInfo" style="margin:11px 0 0"></p>
   </section>
 
   <section id="viewBewerten" hidden>
@@ -228,7 +216,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       <div class="next" id="gradeNext" hidden></div>
     </div>
     <div class="row" style="margin-top:14px">
-      <button class="btn" id="prevBtn">← Zurück</button>
+      <button class="btn" id="prevBtn">← Vorherige</button>
       <button class="btn primary" id="nextBtn" style="flex:1">Nächste Arbeit →</button>
     </div>
   </section>
@@ -236,7 +224,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   <section id="viewSichern" hidden>
     <h2>Korrektur abschließen</h2>
     <div class="card">
-      <p class="muted" style="margin:0 0 11px" id="doneHint"></p>
+      <div class="pbar" id="doneBar" style="margin:0 0 9px"></div>
+      <p class="muted" style="margin:9px 0 11px" id="doneHint"></p>
       <button class="btn" id="doneBtn" style="width:100%">Alle Arbeiten korrigiert</button>
       <p class="muted" style="margin:11px 0 0">Der Vermerk wandert in die Sicherungsdatei. Nach dem Auswertungslauf erscheint die Klausur oben unter „Fertig korrigiert".</p>
     </div>
@@ -251,12 +240,6 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       <p class="muted" style="margin:0">„An PC senden" öffnet das Teilen-Menü — dort OneDrive wählen und im Ordner <b>Klausuren-Daten</b> ablegen. Die Datei liegt dann von selbst auf dem PC.</p>
       <pre id="exportBox" hidden></pre>
     </div>
-    <h2>Stand übernehmen</h2>
-    <div class="card">
-      <p class="muted" style="margin:0 0 11px">Von einem anderen Gerät kommend: Block hier einfügen. Ersetzt den aktuellen Stand dieser Klausur.</p>
-      <textarea id="importBox" placeholder="Gesicherten Block einfügen…"></textarea>
-      <div class="row" style="margin-top:11px"><button class="btn" id="importBtn">Übernehmen</button></div>
-    </div>
     <h2>Speicher</h2>
     <div class="card">
       <p class="muted" id="storageInfo" style="margin:0"></p>
@@ -268,7 +251,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 </div>
 
 <div class="nav"><div class="nav-in">
-  <button id="tabKlausuren" class="on">Klausuren</button>
+  <button id="tabKlausuren" class="on">Übersicht</button>
   <button id="tabKurs" disabled>Kurs</button>
   <button id="tabBewerten" disabled>Bewerten</button>
   <button id="tabSichern" disabled>Sichern</button>
@@ -525,41 +508,10 @@ function noteFuer(st) {
   return { np, kurz: notenKurz(np), ab, npRoh: g.np };
 }
 
-/* ---------------- Kursliste ---------------- */
-const PARTICLES = ["von", "van", "de", "der", "den", "zu", "zum", "del", "di", "da", "le", "la"];
-function initials(vorname, nachname) {
-  let out = "";
-  if (vorname) out += vorname.trim().charAt(0).toUpperCase();
-  (nachname || "").trim().split(/\s+/).forEach(w => {
-    if (!w) return;
-    out += PARTICLES.indexOf(w.toLowerCase()) >= 0 ? w.charAt(0).toLowerCase() : w.charAt(0).toUpperCase();
-  });
-  return out || "??";
-}
-function parseKursliste(text) {
-  const rows = [];
-  text.split(/\r?\n/).forEach(line => {
-    if (!line.trim()) return;
-    const parts = line.indexOf("\t") >= 0 ? line.split("\t") : line.split(";");
-    const nach = (parts[0] || "").trim(), vor = (parts[1] || "").trim(), mail = (parts[2] || "").trim();
-    if (!nach && !vor) return;
-    rows.push({ nach, vor, mail });
-  });
-  const seen = {};
-  rows.forEach(r => {
-    let k = initials(r.vor, r.nach);
-    if (seen[k]) { seen[k]++; k = k + seen[k]; } else { seen[k] = 1; }
-    r.k = k;
-  });
-  return rows;
-}
-function renderKursInfo() {
-  const el = document.getElementById("kursInfo");
-  el.textContent = kursliste.length
-    ? kursliste.length + " Personen gespeichert — nur auf diesem Gerät."
-    : "Noch keine Kursliste. Ohne sie arbeitest du mit Nummern und eigenen Kürzeln.";
-}
-
+/* ---------------- Kursliste ----------------
+   Eingabe/Bearbeitung entfaellt in der App (siehe viewKurs) - "kursliste" wird
+   nur noch gelesen, falls ein Geraet sie aus einer frueheren App-Version noch
+   gespeichert hat (siehe activate()), um dort weiterhin Namen anzuzeigen. */
 /* ---------------- Kursansicht ---------------- */
 function renderSchwelleCard() {
   const card = document.getElementById("schwelleCard");
@@ -601,12 +553,10 @@ function renderKurs() {
     row.addEventListener("click", () => { idx = i; setView("bewerten"); });
     host.appendChild(row);
   });
-  document.getElementById("countInput").value = state.students.length;
   const fehlt = missing();
   const fertigN = state.students.filter(s => { const p = filled(s); return p.of && p.n === p.of; }).length;
   document.getElementById("missInfo").textContent =
     state.students.length + " Arbeiten · " + fertigN + " fertig · " + fehlt + " fehlend";
-  renderKursInfo();
 }
 
 /* ---------------- Bewertungsbogen ---------------- */
@@ -760,7 +710,11 @@ function renderBewerten() {
       // Blaustufen je Teilaufgabe, Gruentoene fuer die Darstellungsleistung
       card.className = "card " + (sec.art === "darstellung" ? "g-d" + (gi % 3) : "g-i" + (gi % 4));
       const h3 = document.createElement("h3");
-      h3.textContent = grp.titel + (grp.max ? " (" + grp.max + " Punkte)" : "");
+      // grp.titel traegt bei den amtlich fixierten Darstellungsleistungs-
+      // Teiltabellen (fixed_blocks.json) die Punktzahl bereits im Text - sonst
+      // stuende sie doppelt da ("... (22 Punkte) (22 Punkte)").
+      const hatPunkteSchon = /\(\s*\d+([.,]\d+)?\s*Punkte?\s*\)\s*$/.test(grp.titel || "");
+      h3.textContent = grp.titel + (grp.max && !hatPunkteSchon ? " (" + grp.max + " Punkte)" : "");
       h3.style.marginTop = "0";
       card.appendChild(h3);
       if (grp.type === "wahlaufgabe") {
@@ -798,7 +752,9 @@ function renderBewerten() {
     });
   });
   renderGradeBox(); renderAbwBox();
-  document.getElementById("prevBtn").disabled = (idx === 0);
+  // Bei der ersten Arbeit ergibt "vorherige" keinen Sinn - Button ganz
+  // ausblenden statt nur zu deaktivieren.
+  document.getElementById("prevBtn").hidden = (idx === 0);
   document.getElementById("nextBtn").disabled = (idx >= state.students.length - 1);
 }
 
@@ -854,11 +810,14 @@ function renderGradeBox() {
 /* ---------------- Kopfzeile ---------------- */
 function renderHead() {
   const box = document.getElementById("scoreBox"), bw = document.getElementById("barWrap");
-  document.getElementById("ctxExam").textContent = CFG ? (CFG.meta.kurs + " · " + CFG.meta.datum) : "Arbeiten bewerten";
+  // Auf der Uebersicht gehoert kein Kurs/Datum-Kontext einer zuletzt
+  // geoeffneten Klausur in die Kopfzeile - die Uebersicht ist klausurneutral.
+  document.getElementById("ctxExam").textContent =
+    (CFG && view !== "klausuren") ? (CFG.meta.kurs + " · " + CFG.meta.datum) : "Arbeiten bewerten";
   if (view !== "bewerten") {
     box.hidden = true; bw.hidden = true;
     document.getElementById("ctxTitle").textContent =
-      view === "klausuren" ? "Klausuren" : (view === "kurs" ? (CFG ? CFG.meta.exam_title : "Kurs") : "Sichern");
+      view === "klausuren" ? "Leistungsüberprüfungen" : (view === "kurs" ? (CFG ? CFG.meta.exam_title : "Kurs") : "Sichern");
     return;
   }
   const st = state.students[idx], pts = total(st), g = noteFuer(st), pr = filled(st);
@@ -883,6 +842,22 @@ function istFertig(e) {
   if (data && data.aufgehoben) return false;
   return e.status === "fertig";
 }
+// Nach Stufe/Kurs gruppiert (Ueberschrift je Kurs), fuer offene wie fertige
+// Arbeiten gleichermassen - so sieht man auf einen Blick, was ein Kurs schon
+// hinter sich hat UND was dort noch ansteht.
+function renderGruppierteListe(host, liste, istFertigFlag) {
+  host.innerHTML = "";
+  const kurse = [];
+  liste.forEach(e => { if (kurse.indexOf(e.kurs) < 0) kurse.push(e.kurs); });
+  kurse.sort();
+  kurse.forEach(k => {
+    const h = document.createElement("h3");
+    h.textContent = k; h.style.margin = "14px 0 4px";
+    if (!host.childNodes.length) h.style.marginTop = "0";
+    host.appendChild(h);
+    liste.filter(e => e.kurs === k).forEach(e => host.appendChild(examRow(e, istFertigFlag)));
+  });
+}
 function renderExamList() {
   const host = document.getElementById("examList");
   host.innerHTML = "";
@@ -890,59 +865,59 @@ function renderExamList() {
   const offen = catalog.filter(e => !istFertig(e));
   const fertig = catalog.filter(e => istFertig(e));
   if (!offen.length) host.innerHTML = '<p class="muted" style="margin:0">Alles korrigiert.</p>';
-  offen.forEach(e => host.appendChild(examRow(e)));
+  else renderGruppierteListe(host, offen, false);
 
   const wrap = document.getElementById("doneWrap"), dl = document.getElementById("doneList");
-  dl.innerHTML = "";
   wrap.hidden = !fertig.length;
-  // nach Stufe/Kurs gruppiert, damit man auf einen Blick sieht, was ein Kurs schon hinter sich hat
-  const kurse = [];
-  fertig.forEach(e => { if (kurse.indexOf(e.kurs) < 0) kurse.push(e.kurs); });
-  kurse.sort();
-  kurse.forEach(k => {
-    const h = document.createElement("h3");
-    h.textContent = k; h.style.margin = "14px 0 4px";
-    if (!dl.childNodes.length) h.style.marginTop = "0";
-    dl.appendChild(h);
-    fertig.filter(e => e.kurs === k).forEach(e => dl.appendChild(examRow(e, true)));
-  });
+  renderGruppierteListe(dl, fertig, true);
 }
-function examRow(e, istFertig) {
+function examRow(e, istFertigFlag) {
   const pr = examProgress(e);
   const row = document.createElement("div");
-  row.className = "srow stack";
-  row.innerHTML = '<span class="tick ' + (istFertig ? "full" : (pr && (pr.fertig || pr.begonnen) ? "part" : "")) + '"></span>' +
+  // Ampel: rot = offen, gelb-orange = angefangen, gruen = fertig.
+  row.className = "srow examrow stack " +
+    (istFertigFlag ? "st-done" : (pr && (pr.fertig || pr.begonnen) ? "st-part" : "st-open"));
+  row.innerHTML = '<span class="tick ' + (istFertigFlag ? "full" : (pr && (pr.fertig || pr.begonnen) ? "part" : "")) + '"></span>' +
                   '<span class="sname"></span><span class="sstate"></span>';
   const n = row.querySelector(".sname");
   n.textContent = e.titel;
   const s = document.createElement("small");
-  s.textContent = e.kurs + " · " + e.datum + (istFertig && e.fertig_am ? " · fertig " + e.fertig_am : "");
+  s.textContent = e.kurs + " · " + e.datum + (istFertigFlag && e.fertig_am ? " · fertig " + e.fertig_am : "");
   n.appendChild(s);
 
   const st = row.querySelector(".sstate");
-  if (istFertig) {
-    st.className = "sstate sdone";
-    st.textContent = (e.bewertet != null ? e.bewertet + " bewertet" : "fertig") +
-                     (e.fehlend ? " · " + e.fehlend + " fehlend" : "");
-  } else if (!pr) {
-    st.textContent = "noch nicht begonnen";
-  } else {
+  if (pr) {
+    // Stand auf DIESEM Geraet - immer aktuell, unabhaengig davon, was der
+    // Katalog vom letzten PC-Auswertungslauf noch weiss.
+    const pct = pr.gesamt ? Math.round(pr.fertig / pr.gesamt * 100) : 0;
     st.innerHTML = "";
-    st.appendChild(document.createTextNode(pr.fertig + " fertig"));
+    st.appendChild(document.createTextNode(pr.fertig + "/" + pr.gesamt + " fertig · " + pct + "%"));
     const sm = document.createElement("small");
-    sm.textContent = pr.begonnen + " begonnen · " + pr.offen + " offen" +
-                     (pr.fehlend ? " · " + pr.fehlend + " fehlend" : "");
+    const ausstehend = pr.gesamt - pr.fertig;
+    const teile = [];
+    if (ausstehend > 0) teile.push("ausstehend: " + ausstehend + "/" + pr.gesamt);
+    if (pr.begonnen) teile.push(pr.begonnen + " begonnen");
+    if (pr.fehlend) teile.push(pr.fehlend + " fehlend");
+    sm.textContent = teile.length ? teile.join(" · ") : "vollständig";
     st.appendChild(sm);
     const bar = document.createElement("div");
     bar.className = "pbar";
-    const teil = (cls, anz) => {
+    const teilBar = (cls, anz) => {
       if (!anz) return;
       const i = document.createElement("i");
       i.className = cls; i.style.width = (anz / pr.gesamt * 100) + "%";
       bar.appendChild(i);
     };
-    teil("done", pr.fertig); teil("part", pr.begonnen); teil("miss", pr.fehlend);
+    teilBar("done", pr.fertig); teilBar("part", pr.begonnen); teilBar("miss", pr.fehlend);
     row.appendChild(bar);
+  } else if (istFertigFlag) {
+    // Kein Stand auf diesem Geraet (z. B. auf einem anderen korrigiert) -
+    // letzter vom PC-Auswertungslauf bekannter Stand als Rueckfallebene.
+    st.className = "sstate sdone";
+    st.textContent = (e.bewertet != null ? e.bewertet + " bewertet" : "fertig") +
+                     (e.fehlend ? " · " + e.fehlend + " fehlend" : "");
+  } else {
+    st.textContent = "noch nicht begonnen";
   }
   row.onclick = () => loadExam(e);
   return row;
@@ -979,15 +954,29 @@ function renderDoneBox() {
   const hint = document.getElementById("doneHint"), btn = document.getElementById("doneBtn");
   const offen = state.students.filter(s => { const p = filled(s); return !s.a && p.of && p.n < p.of; }).length;
   const nichts = state.students.filter(s => { const p = filled(s); return !s.a && p.of && !p.n; }).length;
+  // Visueller Marker: wie viel ist fertig/teilweise/unbearbeitet/fehlend.
+  const gesamt = state.students.length;
+  const fertigN = state.students.filter(s => { const p = filled(s); return !s.a && p.of && p.n === p.of; }).length;
+  const teilN = offen - nichts;
+  const fehltN = state.students.filter(s => s.a).length;
+  const bar = document.getElementById("doneBar");
+  bar.innerHTML = "";
+  const teilBar = (cls, anz) => {
+    if (!anz) return;
+    const i = document.createElement("i");
+    i.className = cls; i.style.width = (anz / gesamt * 100) + "%";
+    bar.appendChild(i);
+  };
+  teilBar("done", fertigN); teilBar("part", teilN); teilBar("miss", fehltN);
   if (state.abgeschlossen) {
     hint.textContent = "Als abgeschlossen markiert" +
       (state.abgeschlossen_am ? " am " + new Date(state.abgeschlossen_am).toLocaleDateString("de-DE") : "") +
       ". Jetzt „An PC senden“ antippen.";
     btn.textContent = "Markierung wieder aufheben";
   } else {
-    hint.textContent = offen
-      ? offen + " Arbeit(en) noch nicht vollständig bewertet" + (nichts ? ", davon " + nichts + " noch gar nicht" : "") + "."
-      : "Alle Arbeiten sind vollständig bewertet.";
+    hint.textContent = fertigN + " von " + gesamt + " fertig" + (offen
+      ? " · " + offen + " Arbeit(en) noch nicht vollständig bewertet" + (nichts ? ", davon " + nichts + " noch gar nicht" : "") + "."
+      : " · alle vollständig bewertet.");
     btn.textContent = "Alle Arbeiten korrigiert";
   }
 }
@@ -1071,27 +1060,6 @@ function setView(v) {
   document.getElementById("schwelleSeg").querySelectorAll("button[data-schwelle]").forEach(b => {
     b.addEventListener("click", () => schwelleSetzen(parseFloat(b.dataset.schwelle)));
   });
-  document.getElementById("kursApply").onclick = () => {
-    const rows = parseKursliste(document.getElementById("kursInput").value);
-    if (!rows.length) { flash("Keine Zeilen erkannt"); return; }
-    kursliste = rows;
-    lsSet(K_KURS(CFG.meta.kurs), kursliste);
-    const cur = state.students.length;
-    if (rows.length > cur) for (let i = cur; i < rows.length; i++) state.students.push(blankStudent(i));
-    if (rows.length < cur) {
-      const lost = state.students.slice(rows.length).some(s => filled(s).n > 0);
-      if (!lost) state.students = state.students.slice(0, rows.length);
-    }
-    state.students.forEach((s, i) => { if (rows[i] && (!s.k || /^\d+$/.test(s.k))) s.k = rows[i].k; });
-    document.getElementById("kursInput").value = "";
-    save(); renderKurs(); flash(rows.length + " Personen übernommen");
-  };
-  document.getElementById("kursCopy").onclick = async () => {
-    if (!kursliste.length) { flash("Noch keine Kursliste hinterlegt"); return; }
-    const txt = kursliste.map(r => [r.nach, r.vor, r.mail].join("\t")).join("\n");
-    try { await navigator.clipboard.writeText(txt); flash("In Zelle B3 der Excel-Datei einfügen"); }
-    catch (e) { document.getElementById("kursInput").value = txt; flash("Bitte von Hand kopieren"); }
-  };
   document.getElementById("doneBtn").onclick = () => {
     if (!state.abgeschlossen) {
       const offen = state.students.filter(s => { const p = filled(s); return !s.a && p.of && p.n < p.of; }).length;
@@ -1108,18 +1076,6 @@ function setView(v) {
       flash("Markierung aufgehoben");
     }
     save(); renderDoneBox(); renderExamList();
-  };
-  document.getElementById("applyCount").onclick = () => {
-    const n = Math.max(1, Math.min(60, parseInt(document.getElementById("countInput").value, 10) || 1));
-    const cur = state.students.length;
-    if (n > cur) for (let i = cur; i < n; i++) state.students.push(blankStudent(i));
-    if (n < cur) {
-      const lost = state.students.slice(n).some(s => filled(s).n > 0);
-      if (lost && !confirm("In den entfernten Arbeiten stehen bereits Punkte. Wirklich löschen?")) return;
-      state.students = state.students.slice(0, n);
-      if (idx >= n) idx = n - 1;
-    }
-    save(); renderKurs(); flash("Auf " + n + " Arbeiten gesetzt");
   };
   document.getElementById("showBtn").onclick = () => {
     const box = document.getElementById("exportBox");
@@ -1143,19 +1099,6 @@ function setView(v) {
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     flash("Als Datei gespeichert — bitte nach OneDrive verschieben");
-  };
-  document.getElementById("importBtn").onclick = () => {
-    const raw = document.getElementById("importBox").value.trim().replace(/^EWH-DATEN\s*/, "");
-    let d; try { d = JSON.parse(raw); } catch (e) { flash("Block nicht lesbar"); return; }
-    if (!d || !Array.isArray(d.students)) { flash("Block nicht lesbar"); return; }
-    if (d.exam && d.exam !== CFG.meta.storage_id) { flash("Der Block gehört zu einer anderen Klausur"); return; }
-    if (!confirm("Aktuellen Stand dieser Klausur ersetzen?")) return;
-    state.students = d.students.map(s => ({ k: s.k || "", p: s.p || {}, w: Object.assign({}, DEFAULT_WAHL, s.w || {}), f: s.f || "", a: !!s.abwesend, ab: s.ab || 0 }));
-    state.abgeschlossen = !!d.abgeschlossen;
-    state.abgeschlossen_am = d.abgeschlossen_am || null;
-    if (state.abgeschlossen) delete state.aufgehoben; else state.aufgehoben = true;
-    idx = 0; save(); document.getElementById("importBox").value = "";
-    renderExamList(); setView("kurs"); flash("Stand übernommen");
   };
   document.getElementById("resetBtn").onclick = () => {
     if (!confirm("Wirklich alle Punkte dieser Klausur löschen?")) return;
