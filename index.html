@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Arbeiten bewerten">
+<meta name="apple-mobile-web-app-title" content="Klausurmanager">
 <meta name="theme-color" content="#14212e">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>Arbeiten bewerten</title>
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%2314212e'/><text x='90' y='134' font-size='124' font-weight='600' font-family='-apple-system,BlinkMacSystemFont,Helvetica,sans-serif' fill='%23ffffff' text-anchor='middle'>A</text></svg>">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%2314212e'/><text x='90' y='134' font-size='124' font-weight='600' font-family='-apple-system,BlinkMacSystemFont,Helvetica,sans-serif' fill='%23ffffff' text-anchor='middle'>A</text></svg>">
+<title>Klausurmanager</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%2314212e'/><g transform='translate(74,64) rotate(-38)'><rect x='-58' y='-10' width='18' height='20' rx='5' fill='%23ffffff'/><rect x='-40' y='-10' width='5' height='20' fill='%2314212e'/><rect x='-35' y='-8' width='66' height='16' fill='%23ffffff'/><polygon points='31,-8 31,8 50,0' fill='%23ffffff'/><polygon points='43,-3 43,3 50,0' fill='%2314212e'/></g><text x='90' y='156' font-size='66' font-weight='700' font-family='-apple-system,BlinkMacSystemFont,Helvetica,sans-serif' fill='%23ffffff' text-anchor='middle'>K</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%2314212e'/><g transform='translate(74,64) rotate(-38)'><rect x='-58' y='-10' width='18' height='20' rx='5' fill='%23ffffff'/><rect x='-40' y='-10' width='5' height='20' fill='%2314212e'/><rect x='-35' y='-8' width='66' height='16' fill='%23ffffff'/><polygon points='31,-8 31,8 50,0' fill='%23ffffff'/><polygon points='43,-3 43,3 50,0' fill='%2314212e'/></g><text x='90' y='156' font-size='66' font-weight='700' font-family='-apple-system,BlinkMacSystemFont,Helvetica,sans-serif' fill='%23ffffff' text-anchor='middle'>K</text></svg>">
 <style>
 :root{
   --ink:#14212e; --soft:#5a6b7c; --paper:#e9edf1; --card:#fff; --line:#d3dae2;
@@ -164,6 +164,10 @@ pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--pape
 .missbtn{min-width:44px;height:36px;border:1px solid var(--line);background:var(--card);
   border-radius:9px;flex:none;cursor:pointer;font-size:13px;color:var(--soft)}
 .missbtn[aria-pressed="true"]{background:#fde8e8;border-color:#f0a8a8;color:#b91c1c;font-weight:620}
+/* Nachschriften-Reiter: rotes fettes Ausrufezeichen, solange offene Faelle da sind */
+.ngAlert{color:#c00000;font-weight:800;margin-left:3px}
+.ngGroup{margin:0 0 8px;font-size:15px}
+.ngSub{font-family:var(--mono);font-size:11px;color:var(--soft);font-weight:400;display:block;margin-top:1px}
 /* Notenkasten ueber „Naechste Arbeit" */
 .gradebox{background:var(--card);border:1px solid var(--line);border-radius:12px;
   padding:14px;margin-top:16px;text-align:center}
@@ -184,7 +188,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   <div class="topHead">
     <button class="navArrow" id="ctxPrev" type="button" aria-label="Vorherige Arbeit" hidden>‹</button>
     <div class="topMain">
-      <div class="exam" id="ctxExam">Arbeiten bewerten</div>
+      <div class="exam" id="ctxExam">Klausurmanager</div>
       <h1 id="ctxTitle">Leistungsüberprüfungen</h1>
       <div class="ctxAbsent" id="ctxAbsent" hidden>
         <span>fehlt — nicht mitgeschrieben</span>
@@ -288,6 +292,12 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       </div>
     </div>
   </section>
+
+  <section id="viewNachschriften" hidden>
+    <h2>Nachschriften</h2>
+    <p class="muted" style="margin:0 0 11px">Alle Kürzel, die eine Leistungsüberprüfung noch nachschreiben müssen — über alle Klausuren hinweg, sortiert nach Datum und Klasse/Kurs.</p>
+    <div class="card" id="nachschriftenList"></div>
+  </section>
 </div>
 
 <div class="nav"><div class="nav-in">
@@ -295,6 +305,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   <button id="tabKurs" disabled>Kurs</button>
   <button id="tabBewerten" disabled>Bewerten</button>
   <button id="tabSichern" disabled>Sichern</button>
+  <button id="tabNachschriften">Nachschriften<span class="ngAlert" id="ngAlert" hidden>!</span></button>
 </div></div>
 
 <div class="flash" id="flash"></div>
@@ -308,6 +319,9 @@ const K_CFG = id => "ewh:app:cfg:" + id;
 const K_DATA = id => "ewh:" + id;                    // kompatibel zur ersten Fassung
 const K_KURS = kurs => "ewh:app:kurs:" + kurs.replace(/\s+/g, "_");
 
+// Flagge je Fach in der Klausurliste - rein optische Zuordnung, kommt aus
+// meta.fach der jeweiligen Klausur (siehe build_exam() in diesem Skript).
+const FLAGGE_JE_FACH = { "Deutsch": "🇩🇪", "Englisch": "🇬🇧" };
 let catalog = [], CFG = null, state = null, idx = 0, view = "klausuren";
 let ALL = [], WAHL = {}, DEFAULT_WAHL = {}, storageOK = true, kursliste = [];
 
@@ -536,6 +550,92 @@ function updateAbsentStudent(entry, i, patch) {
     Object.assign(data.students[i], patch);
     lsSet(K_DATA(entry.id), data);
   }
+  refreshNachschriftenBadge();
+}
+// Eine Zeile "Kuerzel + Name + nachgeschrieben"-Haekchen - gemeinsam genutzt
+// von der Fehlend-Liste unter einer Klausur (Uebersicht) UND vom eigenen
+// Reiter "Nachschriften": exakt dieselbe Zeile, exakt derselbe Datenpfad
+// (updateAbsentStudent), damit beide Stellen immer synchron bleiben.
+function missRowEl(e, a, onToggle) {
+  const r = document.createElement("div");
+  r.className = "missRow";
+  const kb = document.createElement("button");
+  kb.type = "button"; kb.className = "missItem"; kb.textContent = a.k;
+  kb.addEventListener("click", () => loadExam(e, a.i));
+  const nameInp = document.createElement("input");
+  nameInp.type = "text"; nameInp.className = "missName";
+  nameInp.placeholder = "Name (nur auf diesem Gerät)";
+  nameInp.value = a.nm;
+  nameInp.addEventListener("change", () => updateAbsentStudent(e, a.i, { nm: nameInp.value }));
+  const ckLabel = document.createElement("label");
+  ckLabel.className = "missCk";
+  const ck = document.createElement("input");
+  ck.type = "checkbox"; ck.checked = a.ng;
+  ck.addEventListener("change", () => {
+    a.ng = ck.checked;
+    updateAbsentStudent(e, a.i, { ng: ck.checked });
+    if (onToggle) onToggle();
+  });
+  ckLabel.appendChild(ck);
+  ckLabel.appendChild(document.createTextNode("nachgeschrieben"));
+  r.appendChild(kb); r.appendChild(nameInp); r.appendChild(ckLabel);
+  return r;
+}
+// "DD.MM.YYYY" -> "YYYY-MM-DD", damit Datumsstrings sich als Text sortieren
+// lassen (siehe nachschreibListe()).
+function parseDatum(d) {
+  const m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(d || "");
+  return m ? m[3] + "-" + m[2].padStart(2, "0") + "-" + m[1].padStart(2, "0") : (d || "");
+}
+// Alle noch offenen (nicht abgehakten) Nachschreib-Faelle ueber alle Klausuren
+// hinweg - unabhaengig vom Korrekturstand, da "fehlt" oft schon lange vor
+// Abschluss der Korrektur gesetzt wird. Sortiert nach Klausurdatum, dann
+// Klassen-/Kursbezeichnung, dann Klausur (id) und Reihenfolge im Kurs.
+function nachschreibListe() {
+  const out = [];
+  catalog.forEach(e => {
+    examAbsentList(e).forEach(a => { if (!a.ng) out.push({ e, a }); });
+  });
+  out.sort((x, y) => {
+    const dx = parseDatum(x.e.datum), dy = parseDatum(y.e.datum);
+    if (dx !== dy) return dx < dy ? -1 : 1;
+    if (x.e.kurs !== y.e.kurs) return x.e.kurs < y.e.kurs ? -1 : 1;
+    if (x.e.id !== y.e.id) return x.e.id < y.e.id ? -1 : 1;
+    return x.a.i - y.a.i;
+  });
+  return out;
+}
+function refreshNachschriftenBadge() {
+  const el = document.getElementById("ngAlert");
+  if (el) el.hidden = !nachschreibListe().length;
+}
+// Wird abgehakt, verschwindet die Zeile hier sofort (anders als in der
+// Uebersicht, wo sie als Bilanz stehen bleibt) - deshalb kompletter
+// Neuaufbau statt nur Label-Update.
+function renderNachschriften() {
+  const host = document.getElementById("nachschriftenList");
+  const items = nachschreibListe();
+  host.innerHTML = "";
+  if (!items.length) {
+    host.innerHTML = '<p class="muted" style="margin:0">Niemand muss aktuell nachschreiben.</p>';
+    refreshNachschriftenBadge();
+    return;
+  }
+  let letzteId = null;
+  items.forEach(({ e, a }) => {
+    if (e.id !== letzteId) {
+      const h = document.createElement("h3");
+      h.className = "ngGroup";
+      h.style.margin = host.childNodes.length ? "20px 0 8px" : "0 0 8px";
+      h.innerHTML = escHtml(e.datum + " · " + e.kurs) +
+        '<span class="ngSub"></span>';
+      h.querySelector(".ngSub").textContent = e.titel;
+      host.appendChild(h);
+      letzteId = e.id;
+    }
+    host.appendChild(missRowEl(e, a, () => renderNachschriften()));
+  });
+  refreshNachschriftenBadge();
 }
 /* ---------------- Prozentuales Notenschema (Sek I) ----------------
    JS-Entsprechung von skripte/notenschema_prozentual.py::berechne_notenfindung.
@@ -645,7 +745,7 @@ function studentRow(i) {
     if (!st.a && filled(st).n && !confirm("In dieser Arbeit stehen bereits Punkte. Trotzdem als fehlend markieren?")) return;
     st.a = !st.a;
     if (st.a) st.wa = true;
-    save(); renderKurs(); renderHead();
+    save(); renderKurs(); renderHead(); refreshNachschriftenBadge();
   });
   const nameEl = row.querySelector(".sname");
   if (person) {
@@ -936,17 +1036,20 @@ function renderGradeBox() {
 /* ---------------- Kopfzeile ---------------- */
 function renderHead() {
   const box = document.getElementById("scoreBox"), bw = document.getElementById("barWrap");
-  // Auf der Uebersicht gehoert kein Kurs/Datum-Kontext einer zuletzt
-  // geoeffneten Klausur in die Kopfzeile - die Uebersicht ist klausurneutral.
+  // Auf der Uebersicht und im Reiter "Nachschriften" gehoert kein Kurs/Datum-
+  // Kontext einer zuletzt geoeffneten Klausur in die Kopfzeile - beide sind
+  // klausurneutral (Nachschriften spannt sich ueber alle Klausuren).
   document.getElementById("ctxExam").textContent =
-    (CFG && view !== "klausuren") ? (CFG.meta.kurs + " · " + CFG.meta.datum) : "Arbeiten bewerten";
+    (CFG && view !== "klausuren" && view !== "nachschriften") ? (CFG.meta.kurs + " · " + CFG.meta.datum) : "Klausurmanager";
   const ctxPrev = document.getElementById("ctxPrev"), ctxNext = document.getElementById("ctxNext");
   const ctxAbsent = document.getElementById("ctxAbsent");
   if (view !== "bewerten") {
     box.hidden = true; bw.hidden = true;
     ctxPrev.hidden = true; ctxNext.hidden = true; ctxAbsent.hidden = true;
     document.getElementById("ctxTitle").textContent =
-      view === "klausuren" ? "Leistungsüberprüfungen" : (view === "kurs" ? (CFG ? CFG.meta.exam_title : "Kurs") : "Sichern");
+      view === "klausuren" ? "Leistungsüberprüfungen" :
+      (view === "kurs" ? (CFG ? CFG.meta.exam_title : "Kurs") :
+      (view === "nachschriften" ? "Nachschriften" : "Sichern"));
     return;
   }
   const st = state.students[idx], pts = total(st), g = noteFuer(st), pr = filled(st);
@@ -1012,6 +1115,7 @@ function renderExamList() {
   renderGruppierteListe(dl, fertig, true, neuIds);
 
   lsSet(K_SEEN, catalog.map(e => e.id));
+  refreshNachschriftenBadge();
 }
 function examRow(e, istFertigFlag, neuIds) {
   const pr = examProgress(e);
@@ -1022,7 +1126,8 @@ function examRow(e, istFertigFlag, neuIds) {
   row.innerHTML = '<span class="tick ' + (istFertigFlag ? "full" : (pr && (pr.fertig || pr.begonnen) ? "part" : "")) + '"></span>' +
                   '<span class="sname"></span><span class="sstate"></span>';
   const n = row.querySelector(".sname");
-  n.textContent = e.titel;
+  const flagge = FLAGGE_JE_FACH[e.fach];
+  n.textContent = (flagge ? flagge + " " : "") + e.titel;
   if (neuIds && neuIds.indexOf(e.id) >= 0) {
     const badge = document.createElement("span");
     badge.className = "neu-badge";
@@ -1066,7 +1171,7 @@ function examRow(e, istFertigFlag, neuIds) {
     // fuers Nachschreiben); Namensfeld und Haekchen sind reine lokale
     // Merkzettel-Funktion fuer die Nachschreib-Planung.
     const absentEntries = examAbsentList(e);
-    if (istFertigFlag && absentEntries.length) {
+    if (absentEntries.length) {
       const missWrap = document.createElement("div");
       missWrap.className = "missListWrap";
       const toggle = document.createElement("button");
@@ -1091,29 +1196,7 @@ function examRow(e, istFertigFlag, neuIds) {
       };
       updateToggleLabel();
       absentEntries.forEach(a => {
-        const r = document.createElement("div");
-        r.className = "missRow";
-        const kb = document.createElement("button");
-        kb.type = "button"; kb.className = "missItem"; kb.textContent = a.k;
-        kb.addEventListener("click", () => loadExam(e, a.i));
-        const nameInp = document.createElement("input");
-        nameInp.type = "text"; nameInp.className = "missName";
-        nameInp.placeholder = "Name (nur auf diesem Gerät)";
-        nameInp.value = a.nm;
-        nameInp.addEventListener("change", () => updateAbsentStudent(e, a.i, { nm: nameInp.value }));
-        const ckLabel = document.createElement("label");
-        ckLabel.className = "missCk";
-        const ck = document.createElement("input");
-        ck.type = "checkbox"; ck.checked = a.ng;
-        ck.addEventListener("change", () => {
-          a.ng = ck.checked;
-          updateAbsentStudent(e, a.i, { ng: ck.checked });
-          updateToggleLabel();
-        });
-        ckLabel.appendChild(ck);
-        ckLabel.appendChild(document.createTextNode("nachgeschrieben"));
-        r.appendChild(kb); r.appendChild(nameInp); r.appendChild(ckLabel);
-        list.appendChild(r);
+        list.appendChild(missRowEl(e, a, updateToggleLabel));
       });
       toggle.addEventListener("click", ev => {
         ev.stopPropagation();
@@ -1224,12 +1307,14 @@ function setView(v) {
   document.getElementById("viewKurs").hidden = (v !== "kurs");
   document.getElementById("viewBewerten").hidden = (v !== "bewerten");
   document.getElementById("viewSichern").hidden = (v !== "sichern");
-  [["tabKlausuren", "klausuren"], ["tabKurs", "kurs"], ["tabBewerten", "bewerten"], ["tabSichern", "sichern"]]
+  document.getElementById("viewNachschriften").hidden = (v !== "nachschriften");
+  [["tabKlausuren", "klausuren"], ["tabKurs", "kurs"], ["tabBewerten", "bewerten"], ["tabSichern", "sichern"], ["tabNachschriften", "nachschriften"]]
     .forEach(([id, name]) => document.getElementById(id).className = (v === name) ? "on" : "");
   if (v === "klausuren") renderExamList();
   if (v === "kurs") renderKurs();
   if (v === "bewerten") renderBewerten();
   if (v === "sichern") { document.getElementById("exportBox").hidden = true; renderStorageInfo(); renderDoneBox(); }
+  if (v === "nachschriften") renderNachschriften();
   renderHead();
   window.scrollTo(0, 0);
 }
@@ -1241,6 +1326,7 @@ function setView(v) {
   document.getElementById("tabKurs").onclick = () => { if (CFG) setView("kurs"); };
   document.getElementById("tabBewerten").onclick = () => { if (CFG) setView("bewerten"); };
   document.getElementById("tabSichern").onclick = () => { if (CFG) setView("sichern"); };
+  document.getElementById("tabNachschriften").onclick = () => setView("nachschriften");
   // Ladet nicht nur die Klausurliste neu, sondern die App-Huelle selbst (echter
   // Seiten-Reload) - sonst bleibt ein bereits geoeffneter Tab/PWA-Screen auf
   // altem JS/CSS haengen, selbst wenn Server und Katalog laengst aktuell sind.
@@ -1276,7 +1362,7 @@ function setView(v) {
     const st = state.students[idx];
     // "wa" bleibt gesetzt (siehe activate()) - diese Arbeit gehoert weiterhin
     // zur Fehlend-Uebersicht, zaehlt dort aber ab jetzt als nachgeschrieben.
-    st.a = false; st.ng = true; save(); setView("bewerten");
+    st.a = false; st.ng = true; save(); refreshNachschriftenBadge(); setView("bewerten");
   };
   document.getElementById("kuerzelInput").addEventListener("input", e => { state.students[idx].k = e.target.value; save(); renderHead(); });
   document.getElementById("fokusInput").addEventListener("input", e => { state.students[idx].f = e.target.value; save(); });
