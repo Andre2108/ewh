@@ -463,14 +463,21 @@ function activeFields(st) {
 function total(st) {
   // Je Abschnitt gedeckelt: Reservezeilen ersetzen fehlende Punkte, treiben die
   // Summe aber nie ueber das Maximum des Abschnitts hinaus.
+  // Zusaetzlich je Teilaufgabe (Gruppe mit "max") gedeckelt, damit Reserve-
+  // punkte einer Teilaufgabe nicht fehlende Punkte einer anderen ausgleichen.
   const aktiv = activeFields(st);
   let gesamt = 0;
   CFG.sections.forEach(sec => {
     let teil = 0;
-    ALL.forEach(c => {
-      if (c.sec !== sec.key || !aktiv.has(c.field)) return;
-      const v = st.p[c.field];
-      if (typeof v === "number") teil += v;
+    sec.groups.forEach((grp, gi) => {
+      const gkey = sec.key + ":" + gi;
+      let summe = 0;
+      ALL.forEach(c => {
+        if (c.gkey !== gkey || !aktiv.has(c.field)) return;
+        const v = st.p[c.field];
+        if (typeof v === "number") summe += v;
+      });
+      teil += (grp.max ? Math.min(summe, grp.max) : summe);
     });
     gesamt += (sec.max ? Math.min(teil, sec.max) : teil);
   });
