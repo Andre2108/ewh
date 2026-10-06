@@ -288,6 +288,19 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       <p class="muted" style="margin:0">„An PC senden" öffnet das Teilen-Menü — dort OneDrive wählen und im Ordner <b>Klausuren-Daten</b> ablegen. Die Datei liegt dann von selbst auf dem PC.</p>
       <pre id="exportBox" hidden></pre>
     </div>
+    <h2>Stand wiederherstellen</h2>
+    <div class="card">
+      <p class="muted" style="margin:0 0 11px">Spielt eine Sicherung dieser Klausur wieder ein, z. B. nach dem Neuanlegen des App-Symbols. Die Punkte auf diesem Gerät werden dabei ersetzt.</p>
+      <div class="row" style="margin-bottom:11px">
+        <button class="btn" id="restoreFileBtn">Sicherungsdatei wählen</button>
+        <button class="btn" id="restorePasteBtn">Block einfügen</button>
+      </div>
+      <input type="file" id="restoreFile" accept=".txt,text/plain" hidden>
+      <div id="restorePasteBox" hidden>
+        <textarea id="restoreText" placeholder="EWH-DATEN {…}"></textarea>
+        <button class="btn primary" id="restoreGoBtn" style="width:100%;margin-top:9px">Einspielen</button>
+      </div>
+    </div>
     <h2>Speicher</h2>
     <div class="card">
       <p class="muted" id="storageInfo" style="margin:0"></p>
@@ -432,6 +445,9 @@ function activate(cfg, openIdx) {
   }));
   state = lsGet(K_DATA(CFG.meta.storage_id)) || freshState(CFG.meta.n_students || 30);
   if (!state.students || !state.students.length) state = freshState(CFG.meta.n_students || 30);
+  // Nachtraeglich ergaenzte Kuerzel (Config mit mehr Schueler*innen als der
+  // gespeicherte Stand): fehlende Arbeiten hinten anhaengen, nichts verwerfen.
+  for (let i = state.students.length; i < (CFG.meta.n_students || 0); i++) state.students.push(blankStudent(i));
   // "wa" (war abwesend): bleibt dauerhaft gesetzt, auch nach "Freischalten" -
   // damit jemand, der urspruenglich fehlte und spaeter nachgeschrieben hat,
   // in der Fehlend-Uebersicht sichtbar bleibt statt spurlos zu verschwinden.
@@ -1329,6 +1345,36 @@ function exportText() {
   if (istProzentual()) daten.schwelle = aktuelleSchwelle();
   return "EWH-DATEN " + JSON.stringify(daten);
 }
+// Gegenstueck zu exportText(): spielt einen gesicherten Block wieder ein.
+function restoreFrom(text) {
+  const roh = String(text || "").trim();
+  const pos = roh.indexOf("EWH-DATEN");
+  let d;
+  try { d = JSON.parse(pos >= 0 ? roh.slice(pos + 9).trim() : roh); }
+  catch (e) { alert("Das ist keine gültige Sicherung (EWH-DATEN-Block nicht lesbar)."); return; }
+  if (!d || !Array.isArray(d.students)) { alert("Die Sicherung enthält keine Arbeiten."); return; }
+  if (d.exam !== CFG.meta.storage_id) {
+    alert("Diese Sicherung gehört zu einer anderen Klausur (" + (d.exam || "unbekannt") + ").\n" +
+          "Bitte zuerst die passende Klausur öffnen."); return;
+  }
+  const bewertet = d.students.filter(s => s.p && Object.keys(s.p).length).length;
+  const stand = d.saved ? new Date(d.saved).toLocaleString("de-DE") : "unbekannt";
+  const vorhanden = state.students.some(s => s.p && Object.keys(s.p).length);
+  if (!confirm("Sicherung vom " + stand + " mit " + bewertet + " bewerteten Arbeiten einspielen?" +
+      (vorhanden ? "\n\nDie Punkte, die jetzt auf diesem Gerät stehen, werden dabei ersetzt." : ""))) return;
+  const neu = freshState(Math.max(d.students.length, CFG.meta.n_students || 0));
+  d.students.forEach((s, i) => {
+    neu.students[i] = { k: s.k || neu.students[i].k, p: s.p || {}, w: s.w || {}, f: s.f || "",
+                        a: !!s.abwesend, wa: !!s.abwesend, ab: s.ab || 0 };
+  });
+  if (d.abgeschlossen) { neu.abgeschlossen = true; neu.abgeschlossen_am = d.abgeschlossen_am || null; }
+  if (typeof d.schwelle === "number") neu.schwelle = d.schwelle;
+  clearTimeout(saveTimer);               // keinen noch ausstehenden alten Stand nachschreiben
+  neu.saved = new Date().toISOString();
+  lsSet(K_DATA(CFG.meta.storage_id), neu);
+  activate(CFG);
+  flash("Sicherung eingespielt");
+}
 // Dateiname mit Zeitstempel: ein zweiter Versand überschreibt nie den ersten.
 function exportFilename() {
   const d = new Date(), p = n => String(n).padStart(2, "0");
@@ -1445,6 +1491,24 @@ function setView(v) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     flash("Als Datei gespeichert — bitte nach OneDrive verschieben");
   };
+  document.getElementById("restoreFileBtn").onclick = () => {
+    const inp = document.getElementById("restoreFile");
+    inp.value = ""; inp.click();
+  };
+  document.getElementById("restoreFile").addEventListener("change", e => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => restoreFrom(r.result);
+    r.onerror = () => alert("Die Datei konnte nicht gelesen werden.");
+    r.readAsText(f);
+  });
+  document.getElementById("restorePasteBtn").onclick = () => {
+    const box = document.getElementById("restorePasteBox");
+    box.hidden = !box.hidden;
+    if (!box.hidden) document.getElementById("restoreText").focus();
+  };
+  document.getElementById("restoreGoBtn").onclick = () => restoreFrom(document.getElementById("restoreText").value);
   document.getElementById("resetBtn").onclick = () => {
     if (!confirm("Wirklich alle Punkte dieser Klausur löschen?")) return;
     const n = state.students.length;
