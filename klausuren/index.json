@@ -7,6 +7,14 @@
    "datum": "05.10.2026",
    "fach": "Deutsch",
    "file": "klausuren/ewh-heimsuchung-tuchfabrikant-d-gk-q2.json"
+  },
+  {
+   "id": "ewh-its-my-party-6c",
+   "titel": "It's my party! (Class test no. 1)",
+   "kurs": "E-6c",
+   "datum": "08.10.2026",
+   "fach": "Englisch",
+   "file": "klausuren/ewh-its-my-party-6c.json"
   }
  ]
 }
