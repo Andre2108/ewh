@@ -173,6 +173,9 @@ pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--pape
   padding:14px;margin-top:16px;text-align:center}
 .gradebox .lbl{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--soft)}
 .gradebox .val{font-size:27px;font-weight:700;color:#c00000;margin-top:5px;line-height:1.1}
+.gradebox .parts{font-family:var(--mono);font-size:13px;color:var(--soft);margin-top:8px;
+  padding-top:8px;border-top:1px solid var(--line);line-height:1.6}
+h2 .secsum{font-family:var(--mono);font-size:.8em;font-weight:400;color:var(--soft);white-space:nowrap}
 .gradebox .sub{font-family:var(--mono);font-size:13px;color:var(--soft);margin-top:4px}
 .gradebox .next{font-family:var(--mono);font-size:13px;color:var(--mark);margin-top:6px;
   background:var(--paper);border-radius:8px;padding:6px 10px;display:inline-block}
@@ -258,6 +261,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       <div class="val" id="gradeVal">–</div>
       <div class="sub" id="gradeSub">noch keine Bewertung</div>
       <div class="next" id="gradeNext" hidden></div>
+      <div class="parts" id="gradeParts" hidden></div>
     </div>
     <div class="row" style="margin-top:14px">
       <button class="btn" id="prevBtn">← Vorherige</button>
@@ -467,21 +471,24 @@ function total(st) {
   // punkte einer Teilaufgabe nicht fehlende Punkte einer anderen ausgleichen.
   const aktiv = activeFields(st);
   let gesamt = 0;
-  CFG.sections.forEach(sec => {
-    let teil = 0;
-    sec.groups.forEach((grp, gi) => {
-      const gkey = sec.key + ":" + gi;
-      let summe = 0;
-      ALL.forEach(c => {
-        if (c.gkey !== gkey || !aktiv.has(c.field)) return;
-        const v = st.p[c.field];
-        if (typeof v === "number") summe += v;
-      });
-      teil += (grp.max ? Math.min(summe, grp.max) : summe);
-    });
-    gesamt += (sec.max ? Math.min(teil, sec.max) : teil);
-  });
+  CFG.sections.forEach(sec => { gesamt += sectionTotal(st, sec, aktiv); });
   return gesamt;
+}
+// Punkte eines Abschnitts (Teils), mit denselben Deckelungen wie total().
+function sectionTotal(st, sec, aktiv) {
+  aktiv = aktiv || activeFields(st);
+  let teil = 0;
+  sec.groups.forEach((grp, gi) => {
+    const gkey = sec.key + ":" + gi;
+    let summe = 0;
+    ALL.forEach(c => {
+      if (c.gkey !== gkey || !aktiv.has(c.field)) return;
+      const v = st.p[c.field];
+      if (typeof v === "number") summe += v;
+    });
+    teil += (grp.max ? Math.min(summe, grp.max) : summe);
+  });
+  return sec.max ? Math.min(teil, sec.max) : teil;
 }
 function filled(st) {
   if (st.a) return { n: 0, of: 0 };                 // fehlt: zaehlt weder als offen noch als fertig
@@ -935,7 +942,10 @@ function renderBewerten() {
   host.innerHTML = "";
   CFG.sections.forEach(sec => {
     const h = document.createElement("h2");
-    h.textContent = sec.titel + " (" + sec.max + ")";
+    h.textContent = sec.titel + " ";
+    const hs = document.createElement("span");
+    hs.className = "secsum"; hs.dataset.sec = sec.key;
+    h.appendChild(hs);
     host.appendChild(h);
     sec.groups.forEach((grp, gi) => {
       const gkey = sec.key + ":" + gi;
@@ -1018,6 +1028,7 @@ function renderGradeBox() {
   const val = document.getElementById("gradeVal"), sub = document.getElementById("gradeSub");
   const nx = document.getElementById("gradeNext");
   nx.hidden = true;
+  renderTeilsummen(st);
   if (st.a) {
     val.textContent = "fehlt"; sub.textContent = "nicht mitgeschrieben"; return;
   }
@@ -1038,6 +1049,23 @@ function renderGradeBox() {
   if (i > 0) teile.push(fmtP(puffer) + " über " + rows[i][2]);
   nx.textContent = teile.join("  ·  ");
   nx.hidden = false;
+}
+
+// Teilsummen je Abschnitt: live in den Abschnittsueberschriften und als
+// Liste in der Notenbox - zum direkten Uebertragen auf das Klausurblatt.
+function renderTeilsummen(st) {
+  const aktiv = activeFields(st);
+  const zeilen = [];
+  CFG.sections.forEach(sec => {
+    const pts = sectionTotal(st, sec, aktiv);
+    const txt = "(" + fmtP(pts) + " / " + fmtP(sec.max) + ")";
+    document.querySelectorAll('h2 .secsum[data-sec="' + sec.key + '"]').forEach(el => { el.textContent = txt; });
+    zeilen.push(sec.titel + " · " + fmtP(pts) + " / " + fmtP(sec.max));
+  });
+  const box = document.getElementById("gradeParts");
+  box.hidden = st.a || CFG.sections.length < 2;
+  box.innerHTML = "";
+  zeilen.forEach(z => { const d = document.createElement("div"); d.textContent = z; box.appendChild(d); });
 }
 
 /* ---------------- Kopfzeile ---------------- */
