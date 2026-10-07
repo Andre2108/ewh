@@ -15,6 +15,14 @@
    "datum": "08.10.2026",
    "fach": "Englisch",
    "file": "klausuren/ewh-its-my-party-6c.json"
+  },
+  {
+   "id": "ewh-heimsuchung-frau-des-architekten-nachschrift-d-gk-q2",
+   "titel": "Heimsuchung – Die Frau des Architekten (Nachschrift)",
+   "kurs": "D GK Q2",
+   "datum": "Nachschrift zur Klausur am 05.10.2026",
+   "fach": "Deutsch",
+   "file": "klausuren/ewh-heimsuchung-frau-des-architekten-nachschrift-d-gk-q2.json"
   }
  ]
 }
