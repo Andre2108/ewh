@@ -32,6 +32,15 @@
     "KJT"
    ],
    "art": "Klausur"
+  },
+  {
+   "id": "ewh-testarbeit",
+   "titel": "Testarbeit (zum Üben)",
+   "kurs": "Test",
+   "datum": "10.10.2026",
+   "fach": "Englisch",
+   "file": "klausuren/ewh-testarbeit.json",
+   "art": "Arbeit"
   }
  ]
 }
