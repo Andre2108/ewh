@@ -168,6 +168,13 @@ pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--pape
 .ngAlert{color:#c00000;font-weight:800;margin-left:3px}
 .ngGroup{margin:0 0 8px;font-size:15px}
 .ngSub{font-family:var(--mono);font-size:11px;color:var(--soft);font-weight:400;display:block;margin-top:1px}
+/* Nachschrift: gleiche oder andere Arbeit? */
+.nsArt{display:flex;gap:5px;flex-basis:100%;margin-left:2px}
+.nsArt button{font-size:12px;padding:5px 10px;border:1px solid var(--line);background:var(--card);
+  border-radius:999px;cursor:pointer;color:var(--soft)}
+.nsArt button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.nsHint{flex-basis:100%;font-size:12px;color:var(--soft);line-height:1.45;margin:0 0 2px 2px}
+.examrow.st-ns{background:#e8eefc}
 /* Notenkasten ueber „Naechste Arbeit" */
 .gradebox{background:var(--card);border:1px solid var(--line);border-radius:12px;
   padding:14px;margin-top:16px;text-align:center}
@@ -199,6 +206,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       </div>
     </div>
     <button class="navArrow" id="ctxNext" type="button" aria-label="Nächste Arbeit" hidden>›</button>
+    <button class="navArrow" id="ctxJump" type="button" aria-label="Ganz nach unten" hidden>⤓</button>
   </div>
   <div class="score" id="scoreBox" hidden>
     <span class="pts" id="pts">0</span>
@@ -214,6 +222,10 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   <section id="viewKlausuren">
     <h2>Verfügbare Klausuren und Klassenarbeiten</h2>
     <div class="card" id="examList"><p class="muted" style="margin:0">Lade Klausuren…</p></div>
+    <div id="nsWrap" hidden>
+      <h2>Nachschriften</h2>
+      <div class="card" id="nsList"></div>
+    </div>
     <div id="doneWrap" hidden>
       <h2>Fertig korrigiert</h2>
       <div class="card" id="doneList"></div>
@@ -312,7 +324,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 
   <section id="viewNachschriften" hidden>
     <h2>Nachschriften</h2>
-    <p class="muted" style="margin:0 0 11px">Alle Kürzel, die eine Leistungsüberprüfung noch nachschreiben müssen — über alle Klausuren hinweg, sortiert nach Datum und Klasse/Kurs.</p>
+    <p class="muted" style="margin:0 0 11px">Alle Kürzel, die eine Leistungsüberprüfung noch nachschreiben müssen — über alle Klausuren hinweg, sortiert nach Datum und Klasse/Kurs. Je Kürzel festlegen, ob die gleiche oder eine andere Arbeit geschrieben wird.</p>
     <div class="card" id="nachschriftenList"></div>
   </section>
 </div>
@@ -563,7 +575,9 @@ function examAbsentList(entry) {
     // nachgeschrieben, nicht spurlos verschwunden. "|| st.a" faengt alte
     // Staende ab, die "wa" noch nicht kennen.
     if (!st.wa && !st.a) return;
-    out.push({ i, k: st.k || String(i + 1).padStart(2, "0"), nm: st.nm || "", ng: !!st.ng });
+    out.push({ i, k: st.k || String(i + 1).padStart(2, "0"), nm: st.nm || "", ng: !!st.ng,
+               a: !!st.a, nsart: st.nsart || "",
+               gesetzt: Object.keys(st.p || {}).some(f => typeof st.p[f] === "number") });
   });
   return out;
 }
@@ -609,7 +623,56 @@ function missRowEl(e, a, onToggle) {
   ckLabel.appendChild(ck);
   ckLabel.appendChild(document.createTextNode("nachgeschrieben"));
   r.appendChild(kb); r.appendChild(nameInp); r.appendChild(ckLabel);
+  // Gleiche oder andere Arbeit? "gleich": Die Arbeit wird in DIESER Klausur
+  // freigeschaltet und bewertet - Excel und Word bleiben dieselben. "anders":
+  // eine eigene Nachschrift-Klausur (meta.nachschrift_von), deren Auswertung
+  // als eigenes Tabellenblatt in die Excel-Datei dieser Klausur wandert.
+  const art = document.createElement("div");
+  art.className = "nsArt";
+  const hint = document.createElement("p");
+  hint.className = "nsHint";
+  const zeigeArt = () => {
+    art.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.art === a.nsart)));
+    if (a.nsart === "anders") {
+      const ns = nachschriftKlausuren(e.id);
+      hint.textContent = ns.length
+        ? "Nachschrift-Arbeit angelegt: " + ns.map(x => x.titel).join(", ")
+        : "Neue Arbeit mit Claude anlegen und dabei sagen: Nachschrift zu „" + e.titel + "“ (" + e.kurs + ", " + e.datum + "), Kürzel " + a.k + ".";
+      hint.hidden = false;
+    } else if (a.nsart === "gleich") {
+      hint.textContent = a.a ? "" : "Freigeschaltet — steht in der Übersicht unter „Nachschriften“ zum Korrigieren.";
+      hint.hidden = !hint.textContent;
+    } else { hint.hidden = true; }
+  };
+  [["gleich", "gleiche Arbeit"], ["anders", "andere Arbeit"]].forEach(([wert, text]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.dataset.art = wert; b.textContent = text;
+    b.addEventListener("click", ev => {
+      ev.stopPropagation();
+      if (a.nsart === wert) return;
+      if (wert === "gleich") {
+        if (!confirm("Kürzel " + a.k + " schreibt die gleiche Arbeit nach. Jetzt freischalten?\n\nDie Arbeit erscheint dann in der Übersicht unter „Nachschriften“ und wird in dieselbe Excel-Datei ausgewertet.")) return;
+        Object.assign(a, { nsart: "gleich", a: false, ng: true });
+        ck.checked = true;
+        updateAbsentStudent(e, a.i, { nsart: "gleich", a: false, ng: true });
+      } else {
+        if (a.gesetzt && !confirm("In dieser Arbeit stehen bereits Punkte. Sie zählen dann nicht mehr. Trotzdem auf „andere Arbeit“ umstellen?")) return;
+        Object.assign(a, { nsart: "anders", a: true });
+        updateAbsentStudent(e, a.i, { nsart: "anders", a: true });
+      }
+      zeigeArt();
+      if (onToggle) onToggle();
+      if (view === "klausuren") renderNsBereich();
+    });
+    art.appendChild(b);
+  });
+  zeigeArt();
+  r.appendChild(art); r.appendChild(hint);
   return r;
+}
+// Eigene Nachschrift-Klausuren (meta.nachschrift_von) zu einer Klausur.
+function nachschriftKlausuren(id) {
+  return catalog.filter(x => x.nachschrift_von === id);
 }
 // "DD.MM.YYYY" -> "YYYY-MM-DD", damit Datumsstrings sich als Text sortieren
 // lassen (siehe nachschreibListe()).
@@ -793,8 +856,14 @@ function renderKurs() {
   // Zwei Kategorien statt einer durchgehenden Liste: wer verpasst hat,
   // braucht als erstes einen Ueberblick zum Nachschreiben, unabhaengig davon,
   // ob die Korrektur schon fertig ist.
-  const teilgenommen = [], verpasst = [];
-  state.students.forEach((st, i) => (st.a ? verpasst : teilgenommen).push(i));
+  // Fertig bewertete Arbeiten rutschen nach unten, damit oben nur steht, was
+  // noch zu korrigieren ist.
+  const offen = [], verpasst = [], erledigt = [];
+  state.students.forEach((st, i) => {
+    if (st.a) { verpasst.push(i); return; }
+    const p = filled(st);
+    (p.of && p.n === p.of ? erledigt : offen).push(i);
+  });
   const addGroup = (titel, indices) => {
     if (!indices.length) return;
     const h = document.createElement("h3");
@@ -803,8 +872,9 @@ function renderKurs() {
     host.appendChild(h);
     indices.forEach(i => host.appendChild(studentRow(i)));
   };
-  addGroup("An Leistungsüberprüfung teilgenommen", teilgenommen);
+  addGroup("Zu korrigieren", offen);
   addGroup("Leistungsüberprüfung verpasst", verpasst);
+  addGroup("Erledigt", erledigt);
   const fehlt = missing();
   const fertigN = state.students.filter(s => { const p = filled(s); return p.of && p.n === p.of; }).length;
   document.getElementById("missInfo").textContent =
@@ -847,12 +917,14 @@ function tapRow(st, crit, onChange) {
     b.dataset.v = String(v);
     b.setAttribute("aria-label", crit.short + ": " + fmtP(v) + " von " + fmtP(crit.max));
     b.addEventListener("click", () => {
-      if (st.p[crit.field] === v) delete st.p[crit.field]; else st.p[crit.field] = v;
+      const geloescht = st.p[crit.field] === v;
+      if (geloescht) delete st.p[crit.field]; else st.p[crit.field] = v;
       abwPruefen(st);
       // renderGradeBox() MUSS hier mitlaufen: der Kasten ueber „Naechste Arbeit"
       // haengt sonst hinterher, weil er nur beim Neuaufbau der Seite geschrieben wird.
       save(); renderHead(); renderGradeBox(); renderAbwBox();
       refreshAll(); if (onChange) onChange();
+      if (!geloescht) weiterScrollen(wrap, useHalfToggle);
     });
     wrap.appendChild(b);
   }
@@ -885,6 +957,40 @@ function tapRow(st, crit, onChange) {
   if (st.a) wrap.querySelectorAll("button").forEach(b => { b.disabled = true; });
   return wrap;
 }
+// Nach einer Punktvergabe zur naechsten Punktvergabe weiterrollen. Hat das
+// Kriterium einen +0,5-Umschalter, bleibt dessen Reihe oben sichtbar (das
+// naechste Kriterium folgt direkt darunter) - sonst waere der Umschalter
+// weggerollt, bevor man den halben Punkt setzen kann.
+function weiterScrollen(taps, halbModus) {
+  const crit = taps.closest(".crit");
+  const alle = Array.from(document.querySelectorAll("#sections .crit"));
+  const naechstes = alle[alle.indexOf(crit) + 1];
+  let ziel = halbModus ? taps : naechstes;
+  if (!ziel && !halbModus) ziel = document.getElementById("fokusInput").closest(".card").previousElementSibling;
+  if (!ziel) return;
+  const kopf = document.querySelector(".top").getBoundingClientRect().height;
+  const y = ziel.getBoundingClientRect().top + window.scrollY - kopf - 10;
+  window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+}
+// Kriterien bei Aufgaben mit fester Loesung (Grammatik, Vokabeln, Hoerver-
+// stehen ...) gleich aufgeklappt zeigen, bei offenen Formaten (Texte schreiben)
+// zugeklappt - dort sind sie oft so lang, dass die Punkte aus dem Blick geraten.
+// Massgeblich ist "aufgabenformat" ("geschlossen"/"offen") der Teilaufgabe
+// bzw. des Abschnitts. Fehlt es (aeltere Klausuren), entscheiden Stichwoerter
+// in den Ueberschriften, zuletzt die Laenge des Kriteriumstextes.
+const FORMAT_OFFEN = /writing|schreib|mediation|sprachmittlung|darstellung|analys|erörter|interpret|essay|comment|kommentar|creative|kreativ|brief|letter|text produc|textprodu/i;
+const FORMAT_GESCHLOSSEN = /listening|hör|vocab|grammar|grammatik|wortschatz|vokabel|reading|leseverst|use of english|lücken|gap|multiple|true\/false|rechtschreib|diktat/i;
+function kriteriumAufgeklappt(sec, grp, crit) {
+  const fest = (grp && grp.aufgabenformat) || (sec && sec.aufgabenformat);
+  if (fest === "geschlossen") return true;
+  if (fest === "offen") return false;
+  if (sec && sec.art === "darstellung") return false;
+  const kopf = [sec && sec.key, sec && sec.titel, grp && grp.titel].join(" ");
+  if (FORMAT_OFFEN.test(kopf)) return false;
+  if (FORMAT_GESCHLOSSEN.test(kopf)) return true;
+  const text = [crit.intro || ""].concat(crit.bullets || [], crit.schema || []).join(" ");
+  return text.length <= 320;
+}
 function escHtml(t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 // Hebt den Kern jedes Stichpunkts hervor. Bevorzugt wird eine explizite
 // **Markierung** aus der Config (die tatsaechlich wichtigsten Woerter, von
@@ -901,7 +1007,7 @@ function bulletHtml(t) {
 // Bewertungsschema (nur App, nie Word): **Text** wird fett - fuer die
 // grammatikalische Form, um die es im jeweiligen Teilkriterium geht.
 function schemaHtml(t) { return escHtml(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>"); }
-function critBlock(st, crit) {
+function critBlock(st, crit, grp, sec) {
   const d = document.createElement("div");
   d.className = "crit";
   const head = document.createElement("div");
@@ -925,7 +1031,7 @@ function critBlock(st, crit) {
     const btn = document.createElement("button");
     btn.className = "more"; btn.type = "button"; btn.textContent = "Kriterium anzeigen";
     const long = document.createElement("div");
-    long.className = "long"; long.hidden = true;
+    long.className = "long"; long.hidden = !kriteriumAufgeklappt(sec, grp, crit);
     const p = document.createElement("p"); p.textContent = crit.intro; long.appendChild(p);
     if (bullets.length) {
       const ul = document.createElement("ul");
@@ -942,7 +1048,9 @@ function critBlock(st, crit) {
       schema.forEach(t => { const li = document.createElement("li"); li.innerHTML = schemaHtml(t); ul2.appendChild(li); });
       long.appendChild(ul2);
     }
-    btn.onclick = () => { long.hidden = !long.hidden; btn.textContent = long.hidden ? "Kriterium anzeigen" : "Kriterium ausblenden"; };
+    const beschriften = () => { btn.textContent = long.hidden ? "Kriterium anzeigen" : "Kriterium ausblenden"; };
+    beschriften();
+    btn.onclick = () => { long.hidden = !long.hidden; beschriften(); };
     d.appendChild(btn); d.appendChild(long);
   }
   d.appendChild(tapRow(st, crit, updateCmax));
@@ -994,7 +1102,7 @@ function renderBewerten() {
           seg.appendChild(b);
         });
         card.appendChild(seg);
-        grp.options.forEach(o => { if (st.w[gkey] === o.key) o.criteria.forEach(c => card.appendChild(critBlock(st, c))); });
+        grp.options.forEach(o => { if (st.w[gkey] === o.key) o.criteria.forEach(c => card.appendChild(critBlock(st, c, grp, sec))); });
         const other = grp.options.find(o => o.key !== st.w[gkey]);
         if (other) {
           const n = document.createElement("p");
@@ -1005,7 +1113,7 @@ function renderBewerten() {
           card.appendChild(n);
         }
       } else {
-        grp.criteria.forEach(c => card.appendChild(critBlock(st, c)));
+        grp.criteria.forEach(c => card.appendChild(critBlock(st, c, grp, sec)));
       }
       host.appendChild(card);
     });
@@ -1097,6 +1205,7 @@ function renderHead() {
   if (view !== "bewerten") {
     box.hidden = true; bw.hidden = true;
     ctxPrev.hidden = true; ctxNext.hidden = true; ctxAbsent.hidden = true;
+    document.getElementById("ctxJump").hidden = true;
     document.getElementById("ctxTitle").textContent =
       view === "klausuren" ? "Leistungsüberprüfungen" :
       (view === "kurs" ? (CFG ? CFG.meta.exam_title : "Kurs") :
@@ -1118,6 +1227,20 @@ function renderHead() {
   ctxNext.hidden = false;
   ctxNext.disabled = (idx >= state.students.length - 1);
   ctxAbsent.hidden = !st.a;
+  document.getElementById("ctxJump").hidden = false;
+  sprungPfeil();
+}
+// Pfeil in der Kopfzeile: springt ganz nach unten (Note, Naechste Arbeit) -
+// ist man schon unten, zeigt er nach oben und springt zurueck.
+function amEnde() {
+  return window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 80;
+}
+function sprungPfeil() {
+  const b = document.getElementById("ctxJump");
+  if (b.hidden) return;
+  const unten = amEnde();
+  b.textContent = unten ? "⤒" : "⤓";
+  b.setAttribute("aria-label", unten ? "Ganz nach oben" : "Ganz nach unten");
 }
 /* Ob eine Klausur als fertig gilt, entscheidet zuerst der Stand auf diesem
    Geraet: Wird die Markierung gesetzt oder wieder aufgehoben, wandert die
@@ -1156,7 +1279,9 @@ function renderExamList() {
   // noetig. Nach dem Rendern gilt der aktuelle Katalogstand als gesehen.
   const gesehen = lsGet(K_SEEN) || [];
   const neuIds = catalog.filter(e => gesehen.indexOf(e.id) < 0).map(e => e.id);
-  const offen = catalog.filter(e => !istFertig(e));
+  // Eigene Nachschrift-Klausuren stehen nicht bei den regulaeren Klausuren,
+  // sondern im Bereich "Nachschriften" - bis sie fertig korrigiert sind.
+  const offen = catalog.filter(e => !istFertig(e) && !e.nachschrift_von);
   const fertig = catalog.filter(e => istFertig(e));
   if (!offen.length) host.innerHTML = '<p class="muted" style="margin:0">Alles korrigiert.</p>';
   else renderGruppierteListe(host, offen, false, neuIds);
@@ -1165,8 +1290,60 @@ function renderExamList() {
   wrap.hidden = !fertig.length;
   renderGruppierteListe(dl, fertig, true, neuIds);
 
+  renderNsBereich(neuIds);
   lsSet(K_SEEN, catalog.map(e => e.id));
   refreshNachschriftenBadge();
+}
+// Bereich "Nachschriften" der Uebersicht: nur, was dort noch zu korrigieren
+// ist - eigene Nachschrift-Klausuren und einzelne freigeschaltete Arbeiten,
+// die die gleiche Klausur nachgeschrieben haben.
+function nsOffeneArbeiten() {
+  const out = [];
+  catalog.forEach(e => {
+    const data = examData(e);
+    if (!data || !data.students) return;
+    const cfg = (CFG && CFG.meta.storage_id === e.id) ? CFG : lsGet(K_CFG(e.id));
+    data.students.forEach((st, i) => {
+      if (!st.wa || st.a || st.nsart === "anders") return;
+      const gesetzt = Object.keys(st.p || {}).filter(f => typeof st.p[f] === "number").length;
+      const soll = cfg ? activeCount(cfg, st) : 0;
+      if (soll && gesetzt >= soll) return;
+      out.push({ e, i, k: st.k || String(i + 1).padStart(2, "0"), gesetzt, soll });
+    });
+  });
+  return out;
+}
+function renderNsBereich(neuIds) {
+  const wrap = document.getElementById("nsWrap"), host = document.getElementById("nsList");
+  const klausuren = catalog.filter(e => e.nachschrift_von && !istFertig(e));
+  const einzeln = nsOffeneArbeiten();
+  host.innerHTML = "";
+  wrap.hidden = !klausuren.length && !einzeln.length;
+  if (wrap.hidden) return;
+  klausuren.forEach(e => {
+    const row = examRow(e, false, neuIds || []);
+    const orig = catalog.find(x => x.id === e.nachschrift_von);
+    if (orig) {
+      const s = row.querySelector(".sname small");
+      if (s) s.textContent += " · Nachschrift zu „" + orig.titel + "“";
+    }
+    host.appendChild(row);
+  });
+  einzeln.forEach(a => {
+    const row = document.createElement("div");
+    row.className = "srow examrow stack " + (a.gesetzt ? "st-part" : "st-ns");
+    row.innerHTML = '<span class="tick ' + (a.gesetzt ? "part" : "") + '"></span>' +
+                    '<span class="sname"></span><span class="sstate"></span>';
+    const n = row.querySelector(".sname");
+    const flagge = FLAGGE_JE_FACH[a.e.fach];
+    n.textContent = (flagge ? flagge + " " : "") + a.k + " · " + a.e.titel;
+    const sm = document.createElement("small");
+    sm.textContent = a.e.kurs + " · gleiche Arbeit wie am " + a.e.datum;
+    n.appendChild(sm);
+    row.querySelector(".sstate").textContent = a.gesetzt ? a.gesetzt + "/" + a.soll : "offen";
+    row.onclick = () => loadExam(a.e, a.i);
+    host.appendChild(row);
+  });
 }
 function examRow(e, istFertigFlag, neuIds) {
   const pr = examProgress(e);
@@ -1338,7 +1515,11 @@ function exportText() {
     saved: new Date().toISOString(),
     abgeschlossen: !!state.abgeschlossen,
     abgeschlossen_am: state.abgeschlossen_am || null,
-    students: state.students.map(s => ({ k: s.k, w: s.w, p: s.p, f: s.f, abwesend: !!s.a, ab: abwWert(s) }))
+    // "ns": hat gefehlt und die gleiche Arbeit nachgeschrieben - zaehlt in
+    // Excel zur Notenliste, aber nicht zur Statistik der Erstschrift.
+    students: state.students.map(s => Object.assign(
+      { k: s.k, w: s.w, p: s.p, f: s.f, abwesend: !!s.a, ab: abwWert(s) },
+      (s.wa && !s.a) ? { ns: true } : {}))
   };
   // Prozentuales Notenschema (Sek I): die am Handy zuletzt gewählte
   // Defizitschwelle mitschicken, damit Excel/Word dieselbe Note zeigen.
@@ -1365,7 +1546,8 @@ function restoreFrom(text) {
   const neu = freshState(Math.max(d.students.length, CFG.meta.n_students || 0));
   d.students.forEach((s, i) => {
     neu.students[i] = { k: s.k || neu.students[i].k, p: s.p || {}, w: s.w || {}, f: s.f || "",
-                        a: !!s.abwesend, wa: !!s.abwesend, ab: s.ab || 0 };
+                        a: !!s.abwesend, wa: !!(s.abwesend || s.ns), ab: s.ab || 0 };
+    if (s.ns) { neu.students[i].ng = true; neu.students[i].nsart = "gleich"; }
   });
   if (d.abgeschlossen) { neu.abgeschlossen = true; neu.abgeschlossen_am = d.abgeschlossen_am || null; }
   if (typeof d.schwelle === "number") neu.schwelle = d.schwelle;
@@ -1436,6 +1618,10 @@ function setView(v) {
   document.getElementById("nextBtn").onclick = () => { if (idx < state.students.length - 1) { idx++; setView("bewerten"); } };
   document.getElementById("ctxPrev").onclick = () => { if (idx > 0) { idx--; setView("bewerten"); } };
   document.getElementById("ctxNext").onclick = () => { if (idx < state.students.length - 1) { idx++; setView("bewerten"); } };
+  document.getElementById("ctxJump").onclick = () => {
+    window.scrollTo({ top: amEnde() ? 0 : document.documentElement.scrollHeight, behavior: "smooth" });
+  };
+  window.addEventListener("scroll", sprungPfeil, { passive: true });
   // Freischalten: hebt die "fehlt"-Markierung auf (z. B. weil die Arbeit
   // spaeter nachgeschrieben wurde) - dieselbe Aenderung wie der missbtn in
   // der Kursuebersicht, nur direkt von der Bewertungsseite aus erreichbar.
@@ -1443,7 +1629,7 @@ function setView(v) {
     const st = state.students[idx];
     // "wa" bleibt gesetzt (siehe activate()) - diese Arbeit gehoert weiterhin
     // zur Fehlend-Uebersicht, zaehlt dort aber ab jetzt als nachgeschrieben.
-    st.a = false; st.ng = true; save(); refreshNachschriftenBadge(); setView("bewerten");
+    st.a = false; st.ng = true; st.nsart = "gleich"; save(); refreshNachschriftenBadge(); setView("bewerten");
   };
   document.getElementById("kuerzelInput").addEventListener("input", e => { state.students[idx].k = e.target.value; save(); renderHead(); });
   document.getElementById("fokusInput").addEventListener("input", e => { state.students[idx].f = e.target.value; save(); });
