@@ -179,6 +179,7 @@ pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--pape
 /* Kursueberschrift in der Uebersicht: farbiger Kasten, je Kurs eine Farbe */
 .kursKopf{font-size:17px;font-weight:750;color:#fff;border-radius:10px;
   padding:9px 13px;margin:16px 0 8px;letter-spacing:.01em}
+.kursKopf.klein{font-size:13px;padding:5px 11px;border-radius:8px;margin:12px 0 6px;display:inline-block}
 .nsTodo{display:block;font-weight:700;color:#c00000;font-size:13px;margin-top:3px}
 /* Noch nicht bewertete Kriterien: Hinweis in der Notenbox, Sprungknopf oben */
 .offenHint{font-size:13px;font-weight:650;color:#c00000;margin-bottom:8px}
@@ -1455,6 +1456,9 @@ function renderNsBereich() {
   host.innerHTML = "";
   wrap.hidden = !klausuren.length && !fehlend.length && !einzeln.length && !offen.length;
   if (wrap.hidden) return;
+  // Kacheln erst sammeln, dann nach Kurs gruppiert mit farbigem Kasten ausgeben
+  const kacheln = [];
+  const ablegen = (kurs, el) => kacheln.push({ kurs, el });
   const flagge = e => (FLAGGE_JE_FACH[e.fach] ? FLAGGE_JE_FACH[e.fach] + " " : "");
   // Je Originalklausur EINE Kachel - mit allen betroffenen Kuerzeln, statt
   // fuer jedes Kuerzel eine eigene.
@@ -1470,7 +1474,7 @@ function renderNsBereich() {
   // 0. Hat gefehlt - noch nicht entschieden, gleiche oder andere Arbeit
   gruppiert(offen).forEach(({ e, alle }) => {
     const art = artWort(e);
-    host.appendChild(nsKachel("st-open",
+    ablegen(e.kurs, nsKachel("st-open",
       flagge(e) + alle.map(x => x.a.k).join(", ") + " · Nachschrift zur " + art + " am " + e.datum,
       "Original: " + e.titel + " · " + e.kurs,
       "", null, "Gleiche oder andere " + art + "?", alle));
@@ -1478,7 +1482,7 @@ function renderNsBereich() {
   // 1. Andere Arbeit gewaehlt, aber noch nicht erstellt
   gruppiert(fehlend).forEach(({ e, alle }) => {
     const art = artWort(e);
-    host.appendChild(nsKachel("st-open",
+    ablegen(e.kurs, nsKachel("st-open",
       flagge(e) + alle.map(x => x.a.k).join(", ") + " · Nachschrift zur " + art + " am " + e.datum,
       "Original: " + e.titel + " · " + e.kurs,
       "", null, "Bitte veränderte Leistungsüberprüfung erstellen", alle));
@@ -1495,18 +1499,29 @@ function renderNsBereich() {
       orig ? "Original: " + orig.titel + " · " + orig.kurs : e.titel,
       pr ? pr.fertig + "/" + pr.aktiv + " fertig" : "offen",
       () => loadExam(e, ersteOffeneArbeit(e)));
-    host.appendChild(row);
+    ablegen(e.kurs, row);
   });
   // 3. Gleiche Arbeit nachgeschrieben und freigeschaltet - die Kachel oeffnet
   // die erste davon, die noch nicht fertig bewertet ist
   gruppiert(einzeln).forEach(({ e, alle }) => {
     const art = artWort(e);
     const begonnen = alle.filter(x => x.gesetzt).length;
-    host.appendChild(nsKachel(begonnen ? "st-part" : "st-ns",
+    ablegen(e.kurs, nsKachel(begonnen ? "st-part" : "st-ns",
       flagge(e) + alle.map(x => x.k).join(", ") + " · Nachschrift zur " + art + " am " + e.datum + " · gleiche " + art,
       "Original: " + e.titel + " · " + e.kurs,
       alle.length + " offen",
       () => loadExam(e, alle[0].i)));
+  });
+  const kurse = [];
+  kacheln.forEach(x => { if (kurse.indexOf(x.kurs) < 0) kurse.push(x.kurs); });
+  kurse.sort().forEach(k => {
+    const h = document.createElement("div");
+    h.className = "kursKopf klein";
+    h.textContent = k;
+    h.style.background = kursFarbe(k);
+    if (!host.childNodes.length) h.style.marginTop = "0";
+    host.appendChild(h);
+    kacheln.filter(x => x.kurs === k).forEach(x => host.appendChild(x.el));
   });
 }
 function examRow(e, istFertigFlag, neuIds) {
