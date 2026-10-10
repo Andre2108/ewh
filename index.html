@@ -463,7 +463,7 @@ function activate(cfg, openIdx) {
   // "wa" (war abwesend): bleibt dauerhaft gesetzt, auch nach "Freischalten" -
   // damit jemand, der urspruenglich fehlte und spaeter nachgeschrieben hat,
   // in der Fehlend-Uebersicht sichtbar bleibt statt spurlos zu verschwinden.
-  state.students.forEach(s => { s.w = Object.assign({}, DEFAULT_WAHL, s.w || {}); s.p = s.p || {}; s.a = !!s.a; s.wa = !!(s.wa || s.a); abwPruefen(s); });
+  state.students.forEach(s => { s.w = Object.assign({}, DEFAULT_WAHL, s.w || {}); s.p = s.p || {}; s.a = !!s.a; s.wa = !!(s.wa || s.a); abwVermerkBereinigen(s); abwPruefen(s); });
   kursliste = lsGet(K_KURS(CFG.meta.kurs)) || [];
   if (istProzentual()) {
     if (typeof state.schwelle !== "number") state.schwelle = CFG.meta.defizitschwelle || 0.5;
@@ -574,6 +574,7 @@ function examAbsentList(entry) {
     // "Freischalten" bewertet wurde, bleibt hier trotzdem sichtbar - als
     // nachgeschrieben, nicht spurlos verschwunden. "|| st.a" faengt alte
     // Staende ab, die "wa" noch nicht kennen.
+    abwVermerkBereinigen(st);
     if (!st.wa && !st.a) return;
     out.push({ i, k: st.k || String(i + 1).padStart(2, "0"), nm: st.nm || "", ng: !!st.ng,
                a: !!st.a, nsart: st.nsart || "",
@@ -595,6 +596,16 @@ function updateAbsentStudent(entry, i, patch) {
     lsSet(K_DATA(entry.id), data);
   }
   refreshNachschriftenBadge();
+}
+// Hat gefehlt und die gleiche Arbeit nachgeschrieben (freigeschaltet).
+function istNachgeschrieben(st) {
+  return !!(st && st.wa && !st.a && st.nsart !== "anders" && (st.ng || st.nsart === "gleich"));
+}
+// Altlast: Wer frueher als fehlend markiert und danach wieder ausgetragen
+// wurde, behielt "wa" - ohne "nachgeschrieben" (ng) ist das kein Nachschreiben,
+// sondern eine Korrektur, also den Vermerk entfernen.
+function abwVermerkBereinigen(st) {
+  if (st && st.wa && !st.a && !st.ng && !st.nsart) { delete st.wa; delete st.nm; }
 }
 // Eine Zeile "Kuerzel + Name + nachgeschrieben"-Haekchen - gemeinsam genutzt
 // von der Fehlend-Liste unter einer Klausur (Uebersicht) UND vom eigenen
@@ -837,7 +848,11 @@ function studentRow(i) {
     ev.stopPropagation();
     if (!st.a && filled(st).n && !confirm("In dieser Arbeit stehen bereits Punkte. Trotzdem als fehlend markieren?")) return;
     st.a = !st.a;
+    // Wieder austragen ist eine Korrektur, kein Nachschreiben: dann auch
+    // alle Nachschrift-Vermerke loeschen - sonst gaelte die Arbeit weiter als
+    // "hat gefehlt". Nachgeschrieben wird ueber "Freischalten" bzw. "gleiche Arbeit".
     if (st.a) st.wa = true;
+    else { delete st.wa; delete st.ng; delete st.nsart; delete st.nm; }
     save(); renderKurs(); renderHead(); refreshNachschriftenBadge();
   });
   const nameEl = row.querySelector(".sname");
@@ -924,7 +939,9 @@ function tapRow(st, crit, onChange) {
       // haengt sonst hinterher, weil er nur beim Neuaufbau der Seite geschrieben wird.
       save(); renderHead(); renderGradeBox(); renderAbwBox();
       refreshAll(); if (onChange) onChange();
-      if (!geloescht) weiterScrollen(wrap, useHalfToggle);
+      // Halber Punkt noch moeglich? Dann kurz warten (siehe weiterScrollen).
+      if (geloescht) clearTimeout(scrollTimer);
+      else weiterScrollen(wrap, (useHalfToggle && v + 0.5 <= crit.max + 1e-9) ? HALB_PAUSE : 0);
     });
     wrap.appendChild(b);
   }
@@ -947,6 +964,7 @@ function tapRow(st, crit, onChange) {
       }
       abwPruefen(st); save(); renderHead(); renderGradeBox(); renderAbwBox();
       refreshAll(); if (onChange) onChange();
+      if (hasHalf) clearTimeout(scrollTimer); else weiterScrollen(wrap, 0);
     });
     wrap.appendChild(plus);
   }
@@ -957,20 +975,28 @@ function tapRow(st, crit, onChange) {
   if (st.a) wrap.querySelectorAll("button").forEach(b => { b.disabled = true; });
   return wrap;
 }
-// Nach einer Punktvergabe zur naechsten Punktvergabe weiterrollen. Hat das
-// Kriterium einen +0,5-Umschalter, bleibt dessen Reihe oben sichtbar (das
-// naechste Kriterium folgt direkt darunter) - sonst waere der Umschalter
-// weggerollt, bevor man den halben Punkt setzen kann.
-function weiterScrollen(taps, halbModus) {
-  const crit = taps.closest(".crit");
-  const alle = Array.from(document.querySelectorAll("#sections .crit"));
-  const naechstes = alle[alle.indexOf(crit) + 1];
-  let ziel = halbModus ? taps : naechstes;
-  if (!ziel && !halbModus) ziel = document.getElementById("fokusInput").closest(".card").previousElementSibling;
-  if (!ziel) return;
-  const kopf = document.querySelector(".top").getBoundingClientRect().height;
-  const y = ziel.getBoundingClientRect().top + window.scrollY - kopf - 10;
-  window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+// Nach einer Punktvergabe zur naechsten Punktvergabe weiterrollen. Bei
+// Kriterien mit +0,5-Umschalter wartet das Weiterrollen kurz (HALB_PAUSE):
+// Wer noch den halben Punkt antippt, rollt danach sofort weiter; wer nichts
+// mehr antippt, rollt nach der Pause weiter. Hat man in der Pause selbst
+// gescrollt oder etwas anderes angetippt, unterbleibt es.
+const HALB_PAUSE = 1300;
+let scrollTimer = null;
+function weiterScrollen(taps, verzoegerung) {
+  clearTimeout(scrollTimer);
+  const los = () => {
+    const crit = taps.closest(".crit");
+    const alle = Array.from(document.querySelectorAll("#sections .crit"));
+    const ziel = alle[alle.indexOf(crit) + 1] ||
+      document.getElementById("fokusInput").closest(".card").previousElementSibling;
+    if (!ziel || !document.body.contains(taps)) return;
+    const kopf = document.querySelector(".top").getBoundingClientRect().height;
+    const y = ziel.getBoundingClientRect().top + window.scrollY - kopf - 10;
+    window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+  };
+  if (!verzoegerung) { los(); return; }
+  const startY = window.scrollY;
+  scrollTimer = setTimeout(() => { if (Math.abs(window.scrollY - startY) < 30) los(); }, verzoegerung);
 }
 // Kriterien bei Aufgaben mit fester Loesung (Grammatik, Vokabeln, Hoerver-
 // stehen ...) gleich aufgeklappt zeigen, bei offenen Formaten (Texte schreiben)
@@ -1304,7 +1330,7 @@ function nsOffeneArbeiten() {
     if (!data || !data.students) return;
     const cfg = (CFG && CFG.meta.storage_id === e.id) ? CFG : lsGet(K_CFG(e.id));
     data.students.forEach((st, i) => {
-      if (!st.wa || st.a || st.nsart === "anders") return;
+      if (!istNachgeschrieben(st)) return;
       const gesetzt = Object.keys(st.p || {}).filter(f => typeof st.p[f] === "number").length;
       const soll = cfg ? activeCount(cfg, st) : 0;
       if (soll && gesetzt >= soll) return;
@@ -1519,7 +1545,7 @@ function exportText() {
     // Excel zur Notenliste, aber nicht zur Statistik der Erstschrift.
     students: state.students.map(s => Object.assign(
       { k: s.k, w: s.w, p: s.p, f: s.f, abwesend: !!s.a, ab: abwWert(s) },
-      (s.wa && !s.a) ? { ns: true } : {}))
+      istNachgeschrieben(s) ? { ns: true } : {}))
   };
   // Prozentuales Notenschema (Sek I): die am Handy zuletzt gewählte
   // Defizitschwelle mitschicken, damit Excel/Word dieselbe Note zeigen.
