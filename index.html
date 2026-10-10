@@ -179,6 +179,14 @@ pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--pape
 /* Kursueberschrift in der Uebersicht: farbiger Kasten, je Kurs eine Farbe */
 .kursKopf{font-size:17px;font-weight:750;color:#fff;border-radius:10px;
   padding:9px 13px;margin:16px 0 8px;letter-spacing:.01em}
+/* Abgeschlossen: je Lerngruppe die Arbeiten des Schuljahres mit Schnitt */
+.abgRow{display:flex;align-items:baseline;gap:10px;padding:8px 2px;border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:13px;cursor:pointer}
+.kursKopf + .abgRow{border-top:0}
+.abgRow .nr{font-weight:700;min-width:22px}
+.abgRow .dat{color:var(--soft)}
+.abgRow .sch{margin-left:auto;font-weight:700;color:var(--ink)}
+.abgRow .sch.laeuft{font-weight:400;color:var(--soft)}
 .kursKopf.klein{font-size:13px;padding:5px 11px;border-radius:8px;margin:12px 0 6px;display:inline-block}
 .nsTodo{display:block;font-weight:700;color:#c00000;font-size:13px;margin-top:3px}
 /* Noch nicht bewertete Kriterien: Hinweis in der Notenbox, Sprungknopf oben */
@@ -253,6 +261,10 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     <div id="doneWrap" hidden>
       <h2>Fertig korrigiert</h2>
       <div class="card" id="doneList"></div>
+    </div>
+    <div id="abgWrap" hidden>
+      <h2>Abgeschlossen</h2>
+      <div class="card" id="abgList"></div>
     </div>
     <div class="row">
       <button class="btn quiet" id="refreshBtn">Liste aktualisieren</button>
@@ -644,7 +656,7 @@ function missRowEl(e, a, onToggle) {
     if (onToggle) onToggle();
   });
   ckLabel.appendChild(ck);
-  ckLabel.appendChild(document.createTextNode("nachgeschrieben"));
+  ckLabel.appendChild(document.createTextNode("erledigt"));
   r.appendChild(kb); r.appendChild(nameInp); r.appendChild(ckLabel);
   // Gleiche oder andere Arbeit? "gleich": Die Arbeit wird in DIESER Klausur
   // freigeschaltet und bewertet - Excel und Word bleiben dieselben. "anders":
@@ -1313,6 +1325,94 @@ function kursFarbe(kurs) {
   }
   return farben[kurs];
 }
+/* ---------------- Abgeschlossen + Schnitt ----------------
+   Schnitt wie in Excel (Notenspiegel "Durchschnitt (Notenwert)"): Notenwert
+   je Notenpunkt 0,7 (1+) ... 6,0, nur Erstschrift - ohne fehlende und ohne
+   nachgeschriebene Arbeiten. Rein lokal gerechnet aus dem Stand auf diesem
+   Geraet; Schnitte gelangen nie ins Repository. */
+const NOTENWERT = [6.0, 5.3, 5.0, 4.7, 4.3, 4.0, 3.7, 3.3, 3.0, 2.7, 2.3, 2.0, 1.7, 1.3, 1.0, 0.7];
+function schnittAus(cfg, data) {
+  if (!cfg || !data || !data.students) return null;
+  const tabelle = cfg.meta.notenschema === "prozentual"
+    ? computeNotenfindung(cfg.meta.combination_max,
+        typeof data.schwelle === "number" ? data.schwelle : (cfg.meta.defizitschwelle || 0.5))
+    : cfg.notenfindung;
+  if (!tabelle || !tabelle.length) return null;
+  const werte = [];
+  data.students.forEach(st => {
+    if (st.a || istNachgeschrieben(st)) return;
+    const p = st.p || {};
+    if (!Object.keys(p).some(f => typeof p[f] === "number")) return;
+    let gesamt = 0;
+    cfg.sections.forEach(sec => {
+      let teil = 0;
+      sec.groups.forEach((grp, gi) => {
+        let krit = grp.criteria || [];
+        if (grp.type === "wahlaufgabe") {
+          const wahl = (st.w && st.w[sec.key + ":" + gi]) || grp.options[0].key;
+          krit = (grp.options.find(o => o.key === wahl) || grp.options[0]).criteria;
+        }
+        let summe = 0;
+        krit.forEach(c => { if (typeof p[c.field] === "number") summe += p[c.field]; });
+        teil += grp.max ? Math.min(summe, grp.max) : summe;
+      });
+      gesamt += sec.max ? Math.min(teil, sec.max) : teil;
+    });
+    let np = tabelle[0][1];
+    tabelle.forEach(r => { if (gesamt >= r[0]) np = r[1]; });
+    const abw = cfg.abwertung;
+    if (abw && p[abw.feld] === 0 && st.ab) np = Math.max(0, np - Math.min(abw.max_np, st.ab));
+    werte.push(NOTENWERT[np]);
+  });
+  return werte.length ? werte.reduce((a, b) => a + b, 0) / werte.length : null;
+}
+// Komplett erledigt: fertig korrigiert UND jede Nachschrift erledigt - Haken
+// "erledigt", gleiche Arbeit fertig bewertet bzw. veraenderte Arbeit fertig.
+function istAbgeschlossen(e) {
+  if (!e || !e.id || e.nachschrift_von || !istFertig(e)) return false;
+  const ns = nachschriftKlausuren(e.id);
+  if (ns.some(x => !istFertig(x))) return false;
+  if (nsOffeneArbeiten().some(x => x.e.id === e.id)) return false;
+  return examAbsentList(e).every(a => a.ng ||
+    (a.nsart === "anders" && ns.some(x => !Array.isArray(x.kuerzel) || x.kuerzel.indexOf(a.k) >= 0)));
+}
+function renderAbgeschlossen() {
+  const wrap = document.getElementById("abgWrap"), host = document.getElementById("abgList");
+  const kurse = [];
+  catalog.forEach(e => { if (istAbgeschlossen(e) && kurse.indexOf(e.kurs) < 0) kurse.push(e.kurs); });
+  host.innerHTML = "";
+  wrap.hidden = !kurse.length;
+  kurse.sort().forEach(k => {
+    const h = document.createElement("div");
+    h.className = "kursKopf klein";
+    h.textContent = k;
+    h.style.background = kursFarbe(k);
+    if (!host.childNodes.length) h.style.marginTop = "0";
+    host.appendChild(h);
+    // Alle Arbeiten dieser Lerngruppe im Schuljahr, nach Datum nummeriert
+    // (hoechstens sechs) - laufende stehen mit drin, damit der Fortschritt
+    // sichtbar ist.
+    catalog.filter(e => e.kurs === k && !e.nachschrift_von)
+      .sort((x, y) => parseDatum(x.datum) < parseDatum(y.datum) ? -1 : 1)
+      .slice(0, 6)
+      .forEach((e, i) => {
+        const row = document.createElement("div");
+        row.className = "abgRow";
+        row.innerHTML = '<span class="nr"></span><span class="dat"></span><span class="sch"></span>';
+        row.querySelector(".nr").textContent = (i + 1) + ".";
+        row.querySelector(".dat").textContent = e.datum;
+        const sch = row.querySelector(".sch");
+        if (istAbgeschlossen(e)) {
+          const wert = schnittAus(lsGet(K_CFG(e.id)), examData(e));
+          sch.textContent = "Ø " + (wert === null ? "–" : wert.toFixed(2).replace(".", ","));
+        } else {
+          sch.textContent = "läuft"; sch.classList.add("laeuft");
+        }
+        row.onclick = () => loadExam(e);
+        host.appendChild(row);
+      });
+  });
+}
 function renderGruppierteListe(host, liste, istFertigFlag, neuIds) {
   host.innerHTML = "";
   const kurse = [];
@@ -1340,7 +1440,10 @@ function renderExamList() {
   // Eigene Nachschrift-Klausuren stehen nicht bei den regulaeren Klausuren,
   // sondern im Bereich "Nachschriften" - bis sie fertig korrigiert sind.
   const offen = catalog.filter(e => !istFertig(e) && !e.nachschrift_von);
-  const fertig = catalog.filter(e => istFertig(e));
+  // Ganz abgeschlossen (auch alle Nachschriften erledigt): unten unter
+  // "Abgeschlossen" je Lerngruppe - nicht mehr bei "Fertig korrigiert".
+  const fertig = catalog.filter(e => istFertig(e) && !istAbgeschlossen(e) &&
+    !(e.nachschrift_von && istAbgeschlossen(catalog.find(x => x.id === e.nachschrift_von) || {})));
   if (!offen.length) host.innerHTML = '<p class="muted" style="margin:0">Alles korrigiert.</p>';
   else renderGruppierteListe(host, offen, false, neuIds);
 
@@ -1349,6 +1452,7 @@ function renderExamList() {
   renderGruppierteListe(dl, fertig, true, neuIds);
 
   renderNsBereich();
+  renderAbgeschlossen();
   lsSet(K_SEEN, catalog.map(e => e.id));
   refreshNachschriftenBadge();
 }
