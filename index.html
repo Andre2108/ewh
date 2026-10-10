@@ -1427,11 +1427,22 @@ function renderNsBereich() {
   wrap.hidden = !klausuren.length && !fehlend.length && !einzeln.length;
   if (wrap.hidden) return;
   const flagge = e => (FLAGGE_JE_FACH[e.fach] ? FLAGGE_JE_FACH[e.fach] + " " : "");
+  // Je Originalklausur EINE Kachel - mit allen betroffenen Kuerzeln, statt
+  // fuer jedes Kuerzel eine eigene.
+  const gruppiert = liste => {
+    const out = [];
+    liste.forEach(x => {
+      let g = out.find(y => y.e.id === x.e.id);
+      if (!g) { g = { e: x.e, alle: [] }; out.push(g); }
+      g.alle.push(x);
+    });
+    return out;
+  };
   // 1. Andere Arbeit gewaehlt, aber noch nicht erstellt
-  fehlend.forEach(({ e, a }) => {
+  gruppiert(fehlend).forEach(({ e, alle }) => {
     const art = artWort(e);
     host.appendChild(nsKachel("st-open",
-      flagge(e) + a.k + " · Nachschrift zur " + art + " am " + e.datum,
+      flagge(e) + alle.map(x => x.a.k).join(", ") + " · Nachschrift zur " + art + " am " + e.datum,
       "Original: " + e.titel + " · " + e.kurs,
       "", () => setView("nachschriften"),
       "Bitte veränderte Leistungsüberprüfung erstellen"));
@@ -1450,14 +1461,16 @@ function renderNsBereich() {
       () => loadExam(e, ersteOffeneArbeit(e)));
     host.appendChild(row);
   });
-  // 3. Gleiche Arbeit nachgeschrieben und freigeschaltet
-  einzeln.forEach(a => {
-    const art = artWort(a.e);
-    host.appendChild(nsKachel(a.gesetzt ? "st-part" : "st-ns",
-      flagge(a.e) + a.k + " · Nachschrift zur " + art + " am " + a.e.datum + " · gleiche " + art,
-      "Original: " + a.e.titel + " · " + a.e.kurs,
-      a.gesetzt ? a.gesetzt + "/" + a.soll : "offen",
-      () => loadExam(a.e, a.i)));
+  // 3. Gleiche Arbeit nachgeschrieben und freigeschaltet - die Kachel oeffnet
+  // die erste davon, die noch nicht fertig bewertet ist
+  gruppiert(einzeln).forEach(({ e, alle }) => {
+    const art = artWort(e);
+    const begonnen = alle.filter(x => x.gesetzt).length;
+    host.appendChild(nsKachel(begonnen ? "st-part" : "st-ns",
+      flagge(e) + alle.map(x => x.k).join(", ") + " · Nachschrift zur " + art + " am " + e.datum + " · gleiche " + art,
+      "Original: " + e.titel + " · " + e.kurs,
+      alle.length + " offen",
+      () => loadExam(e, alle[0].i)));
   });
 }
 function examRow(e, istFertigFlag, neuIds) {
