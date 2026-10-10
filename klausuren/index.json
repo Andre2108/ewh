@@ -14,7 +14,11 @@
    "kurs": "E-6c",
    "datum": "08.10.2026",
    "fach": "Englisch",
-   "file": "klausuren/ewh-its-my-party-6c.json"
+   "file": "klausuren/ewh-its-my-party-6c.json",
+   "status": "fertig",
+   "fertig_am": "10.10.2026",
+   "bewertet": 29,
+   "fehlend": 1
   },
   {
    "id": "ewh-heimsuchung-frau-des-architekten-nachschrift-d-gk-q2",
