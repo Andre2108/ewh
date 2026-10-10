@@ -176,6 +176,9 @@ pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--pape
 .nsArt button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
 .nsHint{flex-basis:100%;font-size:12px;color:var(--soft);line-height:1.45;margin:0 0 2px 2px}
 .examrow.st-ns{background:#e8eefc}
+/* Kursueberschrift in der Uebersicht: farbiger Kasten, je Kurs eine Farbe */
+.kursKopf{font-size:17px;font-weight:750;color:#fff;border-radius:10px;
+  padding:9px 13px;margin:16px 0 8px;letter-spacing:.01em}
 .nsTodo{display:block;font-weight:700;color:#c00000;font-size:13px;margin-top:3px}
 /* Noch nicht bewertete Kriterien: Hinweis in der Notenbox, Sprungknopf oben */
 .offenHint{font-size:13px;font-weight:650;color:#c00000;margin-bottom:8px}
@@ -352,6 +355,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 const CATALOG_URL = "klausuren/index.json";
 const K_CATALOG = "ewh:app:catalog";
 const K_SEEN = "ewh:app:seen_ids";
+const K_FARBEN = "ewh:app:kursfarben";
 const K_CFG = id => "ewh:app:cfg:" + id;
 const K_DATA = id => "ewh:" + id;                    // kompatibel zur ersten Fassung
 const K_KURS = kurs => "ewh:app:kurs:" + kurs.replace(/\s+/g, "_");
@@ -1293,14 +1297,31 @@ function istFertig(e) {
 // Nach Stufe/Kurs gruppiert (Ueberschrift je Kurs), fuer offene wie fertige
 // Arbeiten gleichermassen - so sieht man auf einen Blick, was ein Kurs schon
 // hinter sich hat UND was dort noch ansteht.
+// Jeder Kurs bekommt dauerhaft eine eigene Farbe: beim ersten Auftauchen die
+// naechste noch freie aus der Palette, gemerkt auf dem Geraet - so bleibt sie
+// gleich, auch wenn spaeter weitere Kurse dazukommen.
+const KURS_PALETTE = ["#1d4ed8", "#047857", "#b45309", "#7c3aed", "#be123c",
+                      "#0e7490", "#4d7c0f", "#a21caf", "#c2410c", "#334155"];
+function kursFarbe(kurs) {
+  const farben = lsGet(K_FARBEN) || {};
+  if (!farben[kurs]) {
+    const belegt = Object.values(farben);
+    farben[kurs] = KURS_PALETTE.find(f => belegt.indexOf(f) < 0) ||
+                   KURS_PALETTE[Object.keys(farben).length % KURS_PALETTE.length];
+    lsSet(K_FARBEN, farben);
+  }
+  return farben[kurs];
+}
 function renderGruppierteListe(host, liste, istFertigFlag, neuIds) {
   host.innerHTML = "";
   const kurse = [];
   liste.forEach(e => { if (kurse.indexOf(e.kurs) < 0) kurse.push(e.kurs); });
   kurse.sort();
   kurse.forEach(k => {
-    const h = document.createElement("h3");
-    h.textContent = k; h.style.margin = "14px 0 4px";
+    const h = document.createElement("div");
+    h.className = "kursKopf";
+    h.textContent = k;
+    h.style.background = kursFarbe(k);
     if (!host.childNodes.length) h.style.marginTop = "0";
     host.appendChild(h);
     liste.filter(e => e.kurs === k).forEach(e => host.appendChild(examRow(e, istFertigFlag, neuIds)));
@@ -1597,7 +1618,7 @@ function tidyStorage() {
   const weg = [];
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (!k || k.indexOf("ewh:") !== 0 || k === K_CATALOG || k === K_SEEN) continue;
+    if (!k || k.indexOf("ewh:") !== 0 || k === K_CATALOG || k === K_SEEN || k === K_FARBEN) continue;
     if (k.indexOf("ewh:app:cfg:") === 0) {
       if (ids.indexOf(k.slice(12)) < 0) weg.push(k);
     } else if (k.indexOf("ewh:app:kurs:") === 0) {
