@@ -175,6 +175,15 @@ pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--pape
 .nsArt button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
 .nsHint{flex-basis:100%;font-size:12px;color:var(--soft);line-height:1.45;margin:0 0 2px 2px}
 .examrow.st-ns{background:#e8eefc}
+.nsTodo{display:block;font-weight:700;color:#c00000;font-size:13px;margin-top:3px}
+/* Noch nicht bewertete Kriterien: Hinweis in der Notenbox, Sprungknopf oben */
+.offenHint{font-size:13px;font-weight:650;color:#c00000;margin-bottom:8px}
+.offenBtn{margin-left:auto;font-family:var(--mono);font-size:12px;font-weight:650;color:#c00000;
+  background:#fde8e8;border:1px solid #f0a8a8;border-radius:999px;padding:5px 10px;cursor:pointer;
+  white-space:nowrap}
+.offenBtn + .badge{margin-left:8px}
+.crit.blink{animation:blink 1.2s ease}
+@keyframes blink{0%,60%{background:#fde8e8}100%{background:transparent}}
 /* Notenkasten ueber „Naechste Arbeit" */
 .gradebox{background:var(--card);border:1px solid var(--line);border-radius:12px;
   padding:14px;margin-top:16px;text-align:center}
@@ -211,6 +220,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   <div class="score" id="scoreBox" hidden>
     <span class="pts" id="pts">0</span>
     <span class="of" id="ptsMax">/ 0</span>
+    <button type="button" class="offenBtn" id="ctxOffen" hidden></button>
     <span class="badge"><b id="noteWord">–</b><span id="notePts">–</span></span>
   </div>
   <div class="bar" id="barWrap" hidden><i id="bar"></i></div>
@@ -269,6 +279,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       <div class="taps" id="abwTaps"></div>
     </div>
     <div class="gradebox" id="gradeBox">
+      <div class="offenHint" id="gradeOffen" hidden></div>
       <div class="lbl">Note dieser Arbeit</div>
       <div class="val" id="gradeVal">–</div>
       <div class="sub" id="gradeSub">noch keine Bewertung</div>
@@ -1036,6 +1047,7 @@ function schemaHtml(t) { return escHtml(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>"
 function critBlock(st, crit, grp, sec) {
   const d = document.createElement("div");
   d.className = "crit";
+  d.dataset.field = crit.field;
   const head = document.createElement("div");
   head.className = "chead";
   head.innerHTML = '<span class="cnr"></span><span class="ctext"></span><span class="cmax"></span>';
@@ -1179,6 +1191,9 @@ function renderGradeBox() {
   const nx = document.getElementById("gradeNext");
   nx.hidden = true;
   renderTeilsummen(st);
+  const offenEl = document.getElementById("gradeOffen"), offenN = st.a ? 0 : pr.of - pr.n;
+  offenEl.hidden = !offenN;
+  offenEl.textContent = offenN === 1 ? "1 nicht bewertetes Kriterium" : offenN + " nicht bewertete Kriterien";
   if (st.a) {
     val.textContent = "fehlt"; sub.textContent = "nicht mitgeschrieben"; return;
   }
@@ -1230,6 +1245,7 @@ function renderHead() {
   const ctxAbsent = document.getElementById("ctxAbsent");
   if (view !== "bewerten") {
     box.hidden = true; bw.hidden = true;
+    document.getElementById("ctxOffen").hidden = true;
     ctxPrev.hidden = true; ctxNext.hidden = true; ctxAbsent.hidden = true;
     document.getElementById("ctxJump").hidden = true;
     document.getElementById("ctxTitle").textContent =
@@ -1253,8 +1269,26 @@ function renderHead() {
   ctxNext.hidden = false;
   ctxNext.disabled = (idx >= state.students.length - 1);
   ctxAbsent.hidden = !st.a;
+  const offenBtn = document.getElementById("ctxOffen"), offenN = st.a ? 0 : pr.of - pr.n;
+  offenBtn.hidden = !offenN;
+  offenBtn.textContent = "↓ " + offenN + " offen";
+  offenBtn.setAttribute("aria-label", "Zum nächsten nicht bewerteten Kriterium (" + offenN + " offen)");
   document.getElementById("ctxJump").hidden = false;
   sprungPfeil();
+}
+// Knopf "x offen" in der Kopfzeile: springt zum naechsten noch nicht
+// bewerteten Kriterium unterhalb der aktuellen Position, am Ende wieder zum
+// ersten - so lassen sich alle Luecken nacheinander abklappern.
+function zumNaechstenOffenen() {
+  const st = state.students[idx];
+  const leer = Array.from(document.querySelectorAll("#sections .crit"))
+    .filter(c => typeof st.p[c.dataset.field] !== "number");
+  if (!leer.length) return;
+  const kopf = document.querySelector(".top").getBoundingClientRect().height;
+  const ziel = leer.find(c => c.getBoundingClientRect().top > kopf + 20) || leer[0];
+  const y = ziel.getBoundingClientRect().top + window.scrollY - kopf - 10;
+  window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+  ziel.classList.remove("blink"); void ziel.offsetWidth; ziel.classList.add("blink");
 }
 // Pfeil in der Kopfzeile: springt ganz nach unten (Note, Naechste Arbeit) -
 // ist man schon unten, zeigt er nach oben und springt zurueck.
@@ -1316,7 +1350,7 @@ function renderExamList() {
   wrap.hidden = !fertig.length;
   renderGruppierteListe(dl, fertig, true, neuIds);
 
-  renderNsBereich(neuIds);
+  renderNsBereich();
   lsSet(K_SEEN, catalog.map(e => e.id));
   refreshNachschriftenBadge();
 }
@@ -1339,36 +1373,91 @@ function nsOffeneArbeiten() {
   });
   return out;
 }
-function renderNsBereich(neuIds) {
+// "Arbeit" (Sek I, Klassenarbeit) oder "Klausur" (Sek II) - aus dem Katalog,
+// bei aelteren Eintraegen ohne Angabe aus der Kursbezeichnung.
+function artWort(e) {
+  if (e.art) return e.art;
+  return /\b(EF|Q1|Q2)\b/.test(e.kurs || "") ? "Klausur" : "Arbeit";
+}
+// Eigene Nachschrift-Klausuren, die ein bestimmtes Kuerzel abdecken (ohne
+// Kuerzelliste im Katalog: alle Nachschriften zu dieser Klausur).
+function nsKlausurFuer(orig, k) {
+  return nachschriftKlausuren(orig.id).find(x => !Array.isArray(x.kuerzel) || x.kuerzel.indexOf(k) >= 0);
+}
+// "andere Arbeit" gewaehlt, die veraenderte Arbeit gibt es aber noch nicht.
+function nsFehlendeArbeiten() {
+  const out = [];
+  catalog.forEach(e => {
+    if (e.nachschrift_von) return;
+    examAbsentList(e).forEach(a => {
+      if (a.nsart === "anders" && !nsKlausurFuer(e, a.k)) out.push({ e, a });
+    });
+  });
+  return out;
+}
+function nsKachel(klasse, titel, unten, rechts, onClick, fett) {
+  const row = document.createElement("div");
+  row.className = "srow examrow stack " + klasse;
+  row.innerHTML = '<span class="tick"></span><span class="sname"></span><span class="sstate"></span>';
+  const n = row.querySelector(".sname");
+  n.textContent = titel;
+  if (fett) { const f = document.createElement("span"); f.className = "nsTodo"; f.textContent = fett; n.appendChild(f); }
+  const sm = document.createElement("small"); sm.textContent = unten; n.appendChild(sm);
+  row.querySelector(".sstate").textContent = rechts;
+  row.onclick = onClick;
+  return row;
+}
+// Erste noch nicht fertig bewertete Arbeit einer Klausur (fuer den Direkteinstieg).
+function ersteOffeneArbeit(e) {
+  const data = examData(e), cfg = lsGet(K_CFG(e.id));
+  if (!data || !data.students) return 0;
+  const i = data.students.findIndex(st => {
+    if (st.a) return false;
+    const n = Object.keys(st.p || {}).filter(f => typeof st.p[f] === "number").length;
+    return !cfg || n < activeCount(cfg, st);
+  });
+  return i < 0 ? 0 : i;
+}
+function renderNsBereich() {
   const wrap = document.getElementById("nsWrap"), host = document.getElementById("nsList");
   const klausuren = catalog.filter(e => e.nachschrift_von && !istFertig(e));
+  const fehlend = nsFehlendeArbeiten();
   const einzeln = nsOffeneArbeiten();
   host.innerHTML = "";
-  wrap.hidden = !klausuren.length && !einzeln.length;
+  wrap.hidden = !klausuren.length && !fehlend.length && !einzeln.length;
   if (wrap.hidden) return;
+  const flagge = e => (FLAGGE_JE_FACH[e.fach] ? FLAGGE_JE_FACH[e.fach] + " " : "");
+  // 1. Andere Arbeit gewaehlt, aber noch nicht erstellt
+  fehlend.forEach(({ e, a }) => {
+    const art = artWort(e);
+    host.appendChild(nsKachel("st-open",
+      flagge(e) + a.k + " · Nachschrift zur " + art + " am " + e.datum,
+      "Original: " + e.titel + " · " + e.kurs,
+      "", () => setView("nachschriften"),
+      "Bitte veränderte Leistungsüberprüfung erstellen"));
+  });
+  // 2. Veraenderte Arbeit liegt vor - Kachel oeffnet direkt die Bewertung
   klausuren.forEach(e => {
-    const row = examRow(e, false, neuIds || []);
     const orig = catalog.find(x => x.id === e.nachschrift_von);
-    if (orig) {
-      const s = row.querySelector(".sname small");
-      if (s) s.textContent += " · Nachschrift zu „" + orig.titel + "“";
-    }
+    const art = artWort(orig || e);
+    const pr = examProgress(e);
+    const kuerzel = Array.isArray(e.kuerzel) && e.kuerzel.length ? e.kuerzel.join(", ") + " · " : "";
+    const row = nsKachel(pr && (pr.fertig || pr.begonnen) ? "st-part" : "st-ns",
+      flagge(e) + kuerzel + "Nachschrift zur " + art + " am " + (orig ? orig.datum : e.datum) +
+        " · veränderte " + art,
+      orig ? "Original: " + orig.titel + " · " + orig.kurs : e.titel,
+      pr ? pr.fertig + "/" + pr.aktiv + " fertig" : "offen",
+      () => loadExam(e, ersteOffeneArbeit(e)));
     host.appendChild(row);
   });
+  // 3. Gleiche Arbeit nachgeschrieben und freigeschaltet
   einzeln.forEach(a => {
-    const row = document.createElement("div");
-    row.className = "srow examrow stack " + (a.gesetzt ? "st-part" : "st-ns");
-    row.innerHTML = '<span class="tick ' + (a.gesetzt ? "part" : "") + '"></span>' +
-                    '<span class="sname"></span><span class="sstate"></span>';
-    const n = row.querySelector(".sname");
-    const flagge = FLAGGE_JE_FACH[a.e.fach];
-    n.textContent = (flagge ? flagge + " " : "") + a.k + " · " + a.e.titel;
-    const sm = document.createElement("small");
-    sm.textContent = a.e.kurs + " · gleiche Arbeit wie am " + a.e.datum;
-    n.appendChild(sm);
-    row.querySelector(".sstate").textContent = a.gesetzt ? a.gesetzt + "/" + a.soll : "offen";
-    row.onclick = () => loadExam(a.e, a.i);
-    host.appendChild(row);
+    const art = artWort(a.e);
+    host.appendChild(nsKachel(a.gesetzt ? "st-part" : "st-ns",
+      flagge(a.e) + a.k + " · Nachschrift zur " + art + " am " + a.e.datum + " · gleiche " + art,
+      "Original: " + a.e.titel + " · " + a.e.kurs,
+      a.gesetzt ? a.gesetzt + "/" + a.soll : "offen",
+      () => loadExam(a.e, a.i)));
   });
 }
 function examRow(e, istFertigFlag, neuIds) {
@@ -1644,6 +1733,7 @@ function setView(v) {
   document.getElementById("nextBtn").onclick = () => { if (idx < state.students.length - 1) { idx++; setView("bewerten"); } };
   document.getElementById("ctxPrev").onclick = () => { if (idx > 0) { idx--; setView("bewerten"); } };
   document.getElementById("ctxNext").onclick = () => { if (idx < state.students.length - 1) { idx++; setView("bewerten"); } };
+  document.getElementById("ctxOffen").onclick = zumNaechstenOffenen;
   document.getElementById("ctxJump").onclick = () => {
     window.scrollTo({ top: amEnde() ? 0 : document.documentElement.scrollHeight, behavior: "smooth" });
   };
