@@ -823,10 +823,42 @@ function hkGruppenMax(st, grp) {
   if (!r || !s || r.nach_gruppe !== grp.titel) return grp.max;
   return Math.min(grp.max || Infinity, r.stufen[s - 1].max);
 }
+function hkGruppe() {
+  const r = hkRegel();
+  if (!r) return null;
+  for (const sec of CFG.sections) for (const g of sec.groups) if (g.titel === r.nach_gruppe) return g;
+  return null;
+}
+// Höchstwert, den ein Kriterium der Hilfe-Teilaufgabe bei genutzter Hilfe
+// noch annehmen kann (Grenze der Stufe minus Punkte der übrigen Kriterien).
+function hkKritGrenze(st, crit) {
+  const g = hkGruppe(), s = hkStufe(st);
+  if (!g || !s || !(g.criteria || []).some(c => c.field === crit.field)) return Infinity;
+  let andere = 0;
+  g.criteria.forEach(c => { if (c.field !== crit.field && typeof st.p[c.field] === "number") andere += st.p[c.field]; });
+  return Math.max(0, hkRegel().stufen[s - 1].max - andere);
+}
+// Nach einem Stufenwechsel: zu hohe Werte auf die Grenze setzen (alten Wert
+// merken) bzw. beim Zurücknehmen den gemerkten Wert wiederherstellen.
+function hkWerteAnpassen(st) {
+  const g = hkGruppe();
+  if (!g) return;
+  st.hkv = st.hkv || {};
+  (g.criteria || []).forEach(c => {
+    const grenze = hkKritGrenze(st, c), cur = st.p[c.field];
+    if (typeof st.hkv[c.field] === "number") {
+      st.p[c.field] = Math.min(st.hkv[c.field], grenze);
+      if (st.hkv[c.field] <= grenze) delete st.hkv[c.field];
+    } else if (typeof cur === "number" && cur > grenze) {
+      st.hkv[c.field] = cur;
+      st.p[c.field] = grenze;
+    }
+  });
+  if (!Object.keys(st.hkv).length) delete st.hkv;
+}
 function hkKarte(st) {
   const r = hkRegel(), card = document.createElement("div");
-  card.className = "card";
-  card.style.borderColor = "#c55a11";
+  card.style.cssText = "border:1px solid #c55a11;border-radius:9px;padding:10px 12px;margin:4px 0 14px";
   const h3 = document.createElement("h3");
   h3.style.margin = "0 0 6px";
   h3.textContent = r.titel || "Hilfekarten";
@@ -845,6 +877,8 @@ function hkKarte(st) {
     b.setAttribute("aria-pressed", String(hkStufe(st) === v));
     b.addEventListener("click", () => {
       if (v) st.hk = v; else delete st.hk;
+      hkWerteAnpassen(st);
+      document.querySelectorAll(".taps").forEach(w => { if (w._refresh) w._refresh(); });
       save(); renderHead(); renderGradeBox();
       taps.querySelectorAll("button").forEach((x, j) => x.setAttribute("aria-pressed", String(j === v)));
     });
@@ -961,18 +995,23 @@ function tapRow(st, crit, onChange) {
   const step = useHalfToggle ? 1 : (half ? 0.5 : 1);
   const upper = useHalfToggle ? Math.floor(crit.max + 1e-9) : crit.max;
   const refreshAll = () => {
+    const grenze = hkKritGrenze(st, crit);
     wrap.querySelectorAll(".tap[data-v]").forEach(x => {
       const v = parseFloat(x.dataset.v);
       const cur = st.p[crit.field];
+      x.disabled = !!st.a || v > grenze + 1e-9;
       const pressed = useHalfToggle ? (cur !== undefined && Math.floor(cur + 1e-9) === v) : (cur === v);
       x.setAttribute("aria-pressed", String(pressed));
     });
     const plusBtn = wrap.querySelector('.tap.half[data-half="plus"]');
     if (plusBtn) {
       const cur = st.p[crit.field];
-      plusBtn.setAttribute("aria-pressed", String(cur !== undefined && Math.abs((cur * 2) % 2) === 1));
+      const halb = cur !== undefined && Math.abs((cur * 2) % 2) === 1;
+      plusBtn.setAttribute("aria-pressed", String(halb));
+      plusBtn.disabled = !!st.a || (!halb && Math.floor((cur || 0) + 1e-9) + 0.5 > grenze + 1e-9);
     }
   };
+  wrap._refresh = () => { refreshAll(); if (onChange) onChange(); };
   for (let v = 0; v <= upper + 1e-9; v += step) {
     v = Math.round(v * 2) / 2; // Rundungsdrift beim Aufsummieren der Schrittweite vermeiden
     const b = document.createElement("button");
@@ -982,6 +1021,7 @@ function tapRow(st, crit, onChange) {
     b.addEventListener("click", () => {
       const geloescht = st.p[crit.field] === v;
       if (geloescht) delete st.p[crit.field]; else st.p[crit.field] = v;
+      if (st.hkv) { delete st.hkv[crit.field]; if (!Object.keys(st.hkv).length) delete st.hkv; }
       abwPruefen(st);
       // renderGradeBox() MUSS hier mitlaufen: der Kasten ueber „Naechste Arbeit"
       // haengt sonst hinterher, weil er nur beim Neuaufbau der Seite geschrieben wird.
@@ -1171,6 +1211,9 @@ function renderBewerten() {
       h3.textContent = grp.titel + (grp.max && !hatPunkteSchon ? " (" + grp.max + " Punkte)" : "");
       h3.style.marginTop = "0";
       card.appendChild(h3);
+      // Hilfekarten-Tasten direkt unter der Überschrift der zugehörigen Teilaufgabe
+      const hkR = hkRegel();
+      if (hkR && hkR.nach_gruppe === grp.titel && !st.a) card.appendChild(hkKarte(st));
       if (grp.type === "wahlaufgabe") {
         const seg = document.createElement("div");
         seg.className = "seg";
@@ -1203,9 +1246,6 @@ function renderBewerten() {
         grp.criteria.forEach(c => card.appendChild(critBlock(st, c, grp, sec)));
       }
       host.appendChild(card);
-      // Hilfekarten-Tasten direkt unter der Teilaufgabe, zu der sie gehören
-      const hk = hkRegel();
-      if (hk && hk.nach_gruppe === grp.titel && !st.a) host.appendChild(hkKarte(st));
     });
   });
   renderGradeBox(); renderAbwBox();
