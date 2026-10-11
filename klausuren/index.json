@@ -42,6 +42,15 @@
    "fach": "Englisch",
    "file": "klausuren/ewh-welcome-to-greenwich-5d.json",
    "art": "Arbeit"
+  },
+  {
+   "id": "ewh-westbuehl-6c",
+   "titel": "Charakterisierung Herr Westbühl (1. Deutscharbeit)",
+   "kurs": "D-6c",
+   "datum": "13.10.2026",
+   "fach": "Deutsch",
+   "file": "klausuren/ewh-westbuehl-6c.json",
+   "art": "Arbeit"
   }
  ]
 }

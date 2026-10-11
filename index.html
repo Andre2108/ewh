@@ -805,15 +805,57 @@ function abwPruefen(st) {
   if (st && st.ab && !abwMoeglich(st)) { delete st.ab; return true; }
   return false;
 }
+/* ---------------- Hilfekarten ----------------
+   Optional (Config-Block "hilfekarten"): Wer sich Hilfe geholt hat, bekommt
+   je Stufe einen festen Notenabzug. Wie bei der Abwertung bleibt die
+   Punktzahl unverändert, erst die fertige Note sinkt um den Wert der Stufe.
+   Welche Stufen es gibt und wo die Tasten stehen, sagt nur die Config. */
+function hkRegel() { return (CFG && CFG.hilfekarten) || null; }
+function hkStufe(st) {
+  const r = hkRegel();
+  if (!r || !st || st.a) return 0;
+  return Math.max(0, Math.min(r.stufen.length, st.hk || 0));
+}
+function hkNp(st) { const s = hkStufe(st); return s ? hkRegel().stufen[s - 1].np : 0; }
+function hkKarte(st) {
+  const r = hkRegel(), card = document.createElement("div");
+  card.className = "card";
+  card.style.borderColor = "#c55a11";
+  const h3 = document.createElement("h3");
+  h3.style.margin = "0 0 6px";
+  h3.textContent = r.titel || "Hilfekarten";
+  card.appendChild(h3);
+  if (r.hinweis) {
+    const p = document.createElement("p");
+    p.className = "muted"; p.style.margin = "0 0 11px"; p.textContent = r.hinweis;
+    card.appendChild(p);
+  }
+  const taps = document.createElement("div");
+  taps.className = "taps";
+  [{ label: "keine", np: 0 }].concat(r.stufen).forEach((s, v) => {
+    const b = document.createElement("button");
+    b.className = "tap"; b.type = "button"; b.style.padding = "0 12px";
+    b.textContent = v ? s.label + " (−" + s.np + ")" : "keine";
+    b.setAttribute("aria-pressed", String(hkStufe(st) === v));
+    b.addEventListener("click", () => {
+      if (v) st.hk = v; else delete st.hk;
+      save(); renderHead(); renderGradeBox();
+      taps.querySelectorAll("button").forEach((x, j) => x.setAttribute("aria-pressed", String(j === v)));
+    });
+    taps.appendChild(b);
+  });
+  card.appendChild(taps);
+  return card;
+}
 function notenKurz(np) {
   const r = CFG.notenfindung.filter(x => x[1] === np)[0];
   return r ? r[2] : "–";
 }
 function noteFuer(st) {
-  const g = grade(total(st)), ab = abwWert(st);
-  if (!ab) return { np: g.np, kurz: g.kurz, ab: 0, npRoh: g.np };
-  const np = Math.max(0, g.np - ab);
-  return { np, kurz: notenKurz(np), ab, npRoh: g.np };
+  const g = grade(total(st)), ab = abwWert(st), hk = hkNp(st);
+  if (!ab && !hk) return { np: g.np, kurz: g.kurz, ab: 0, hk: 0, npRoh: g.np, kurzRoh: g.kurz };
+  const np = Math.max(0, g.np - ab - hk);
+  return { np, kurz: notenKurz(np), ab, hk, npRoh: g.np, kurzRoh: g.kurz };
 }
 
 /* ---------------- Kursliste ----------------
@@ -832,7 +874,7 @@ function renderSchwelleCard() {
 }
 function studentRow(i) {
   const st = state.students[i];
-  const pr = filled(st), pts = total(st), g = grade(pts), done = pr.of > 0 && pr.n === pr.of;
+  const pr = filled(st), pts = total(st), g = noteFuer(st), done = pr.of > 0 && pr.n === pr.of;
   const person = kursliste[i];
   const row = document.createElement("div");
   row.className = "srow" + (st.a ? " absent" : "");
@@ -1143,6 +1185,9 @@ function renderBewerten() {
         grp.criteria.forEach(c => card.appendChild(critBlock(st, c, grp, sec)));
       }
       host.appendChild(card);
+      // Hilfekarten-Tasten direkt unter der Teilaufgabe, zu der sie gehören
+      const hk = hkRegel();
+      if (hk && hk.nach_gruppe === grp.titel && !st.a) host.appendChild(hkKarte(st));
     });
   });
   renderGradeBox(); renderAbwBox();
@@ -1190,7 +1235,9 @@ function renderGradeBox() {
   val.textContent = istProzentual() ? g.kurz : (g.kurz + " (" + g.np + " Punkte)");
   sub.textContent = fmtP(pts) + " von " + CFG.meta.combination_max + " Punkten · " +
                     (pr.n === pr.of ? "vollständig" : pr.n + " von " + pr.of + " Kriterien") +
-                    (g.ab ? " · abgewertet um " + g.ab + " (statt " + g.npRoh + ")" : "");
+                    (g.ab ? " · abgewertet um " + g.ab + " (statt " + g.npRoh + ")" : "") +
+                    (g.hk ? " · " + hkRegel().stufen[hkStufe(st) - 1].label + ": −" + g.hk +
+                            (g.hk === 1 ? " Tendenz" : " Tendenzen") + " (statt " + g.kurzRoh + ")" : "");
   // Grenzfall-Hinweis: Abstand nach oben und nach unten. Genau da, wo man
   // ohnehin lange ueberlegt, steht damit sofort, worum es geht.
   const rows = CFG.notenfindung;
@@ -1382,6 +1429,8 @@ function notenpunkteAus(cfg, data) {
     tabelle.forEach(r => { if (gesamt >= r[0]) np = r[1]; });
     const abw = cfg.abwertung;
     if (abw && p[abw.feld] === 0 && st.ab) np = Math.max(0, np - Math.min(abw.max_np, st.ab));
+    const hk = cfg.hilfekarten;
+    if (hk && st.hk) np = Math.max(0, np - hk.stufen[Math.min(hk.stufen.length, st.hk) - 1].np);
     werte.push(np);
   });
   return werte;
@@ -1861,7 +1910,7 @@ function exportText() {
     // "ns": hat gefehlt und die gleiche Arbeit nachgeschrieben - zaehlt in
     // Excel zur Notenliste, aber nicht zur Statistik der Erstschrift.
     students: state.students.map(s => Object.assign(
-      { k: s.k, w: s.w, p: s.p, f: s.f, abwesend: !!s.a, ab: abwWert(s) },
+      { k: s.k, w: s.w, p: s.p, f: s.f, abwesend: !!s.a, ab: abwWert(s), hk: hkStufe(s) },
       istNachgeschrieben(s) ? { ns: true } : {}))
   };
   // Prozentuales Notenschema (Sek I): die am Handy zuletzt gewählte
@@ -1889,7 +1938,7 @@ function restoreFrom(text) {
   const neu = freshState(Math.max(d.students.length, CFG.meta.n_students || 0));
   d.students.forEach((s, i) => {
     neu.students[i] = { k: s.k || neu.students[i].k, p: s.p || {}, w: s.w || {}, f: s.f || "",
-                        a: !!s.abwesend, wa: !!(s.abwesend || s.ns), ab: s.ab || 0 };
+                        a: !!s.abwesend, wa: !!(s.abwesend || s.ns), ab: s.ab || 0, hk: s.hk || 0 };
     if (s.ns) { neu.students[i].ng = true; neu.students[i].nsart = "gleich"; }
   });
   if (d.abgeschlossen) { neu.abgeschlossen = true; neu.abgeschlossen_am = d.abgeschlossen_am || null; }
