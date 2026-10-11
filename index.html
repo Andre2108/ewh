@@ -83,6 +83,19 @@ h3{font-size:15px;margin:20px 0 10px;font-weight:620}
   background:var(--card);border-radius:9px;font-size:14px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
 .nbnote{font-size:13px;color:var(--nb);margin:8px 0 0}
+/* Hilfekarten: kleine farbige Tasten (grün = keine Hilfe, orange = Stufe 1, orangerot = Stufe 2),
+   Bewertungshinweis in der Farbe der gewählten Stufe, Schrift wie .long */
+.hkwahl{border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin:2px 0 12px}
+.hkwahl h4{margin:0 0 4px;font-size:14px;font-weight:620}
+.hktaps{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.hkbtn{font-family:var(--sans);font-size:13px;line-height:1.2;padding:7px 12px;border-radius:9px;cursor:pointer;
+  border:1px solid var(--hk);background:var(--hkbg);color:var(--hk)}
+.hkbtn[aria-pressed="true"]{background:var(--hk);color:#fff;font-weight:620}
+.hkbew{font-size:14px;line-height:1.5;margin:9px 0 0 30px;padding:9px 12px;border-radius:9px;
+  border-left:3px solid var(--hk);background:var(--hkbg)}
+.hkbew p{margin:0 0 6px}
+.hkbew ul{margin:0;padding-left:19px}
+.hkbew li{margin-bottom:4px}
 .srow{display:flex;align-items:center;gap:11px;padding:12px 0;border-top:1px solid var(--line);cursor:pointer}
 .srow:first-child{border-top:0}
 .sidx{font-family:var(--mono);font-size:12px;color:var(--soft);min-width:22px}
@@ -858,39 +871,43 @@ function hkWerteAnpassen(st) {
 }
 // Zusätzliches Bewertungskriterium der gewählten Hilfestufe - erscheint im
 // Kriterium der Hilfe-Teilaufgabe nur, solange die Stufe aktiv ist.
+const HK_FARBEN = [["#2e7d32", "#eaf5eb"], ["#d97706", "#fff4e2"], ["#c2410c", "#fdebe3"]];
+function hkFarbe(el, stufe) {
+  const f = HK_FARBEN[Math.min(stufe, HK_FARBEN.length - 1)];
+  el.style.setProperty("--hk", f[0]); el.style.setProperty("--hkbg", f[1]);
+}
 function hkBewertungFuellen(el, st) {
   const r = hkRegel(), s = hkStufe(st);
   const stufe = s ? r.stufen[s - 1] : null;
   el.innerHTML = "";
   el.hidden = !(stufe && stufe.bewertung && stufe.bewertung.length);
   if (el.hidden) return;
+  hkFarbe(el, s);
   const p = document.createElement("p");
-  p.style.margin = "0 0 4px";
   p.innerHTML = "<b>Bewertung mit " + escHtml(stufe.label) + " (höchstens " + fmtP(stufe.max) + " Punkte):</b>";
   el.appendChild(p);
   const ul = document.createElement("ul");
-  ul.style.margin = "0";
   stufe.bewertung.forEach(t => { const li = document.createElement("li"); li.innerHTML = schemaHtml(t); ul.appendChild(li); });
   el.appendChild(ul);
 }
 function hkKarte(st) {
   const r = hkRegel(), card = document.createElement("div");
-  card.style.cssText = "border:1px solid #c55a11;border-radius:9px;padding:10px 12px;margin:4px 0 14px";
-  const h3 = document.createElement("h3");
-  h3.style.margin = "0 0 6px";
-  h3.textContent = r.titel || "Hilfekarten";
-  card.appendChild(h3);
+  card.className = "hkwahl";
+  const h4 = document.createElement("h4");
+  h4.textContent = r.titel || "Hilfekarten";
+  card.appendChild(h4);
   if (r.hinweis) {
     const p = document.createElement("p");
-    p.className = "muted"; p.style.margin = "0 0 11px"; p.textContent = r.hinweis;
+    p.className = "muted"; p.style.margin = "0"; p.textContent = r.hinweis;
     card.appendChild(p);
   }
   const taps = document.createElement("div");
-  taps.className = "taps";
+  taps.className = "hktaps";
   [{ label: "keine", np: 0 }].concat(r.stufen).forEach((s, v) => {
     const b = document.createElement("button");
-    b.className = "tap"; b.type = "button"; b.style.padding = "0 12px";
-    b.textContent = v ? s.label + " (max " + fmtP(s.max) + ")" : "keine";
+    b.className = "hkbtn"; b.type = "button";
+    hkFarbe(b, v);
+    b.textContent = v ? s.label + " (max " + fmtP(s.max) + ")" : "ohne Hilfe";
     b.setAttribute("aria-pressed", String(hkStufe(st) === v));
     b.addEventListener("click", () => {
       if (v) st.hk = v; else delete st.hk;
@@ -1174,7 +1191,6 @@ function critBlock(st, crit, grp, sec) {
   if (hkG && (hkG.criteria || []).some(c => c.field === crit.field)) {
     const hb = document.createElement("div");
     hb.className = "hkbew";
-    hb.style.cssText = "margin:4px 0 8px 30px;padding:8px 10px;border-left:3px solid #c55a11;background:#fbf3ec;border-radius:6px";
     hkBewertungFuellen(hb, st);
     d.appendChild(hb);
   }
