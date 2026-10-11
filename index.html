@@ -856,6 +856,23 @@ function hkWerteAnpassen(st) {
   });
   if (!Object.keys(st.hkv).length) delete st.hkv;
 }
+// Zusätzliches Bewertungskriterium der gewählten Hilfestufe - erscheint im
+// Kriterium der Hilfe-Teilaufgabe nur, solange die Stufe aktiv ist.
+function hkBewertungFuellen(el, st) {
+  const r = hkRegel(), s = hkStufe(st);
+  const stufe = s ? r.stufen[s - 1] : null;
+  el.innerHTML = "";
+  el.hidden = !(stufe && stufe.bewertung && stufe.bewertung.length);
+  if (el.hidden) return;
+  const p = document.createElement("p");
+  p.style.margin = "0 0 4px";
+  p.innerHTML = "<b>Bewertung mit " + escHtml(stufe.label) + " (höchstens " + fmtP(stufe.max) + " Punkte):</b>";
+  el.appendChild(p);
+  const ul = document.createElement("ul");
+  ul.style.margin = "0";
+  stufe.bewertung.forEach(t => { const li = document.createElement("li"); li.innerHTML = schemaHtml(t); ul.appendChild(li); });
+  el.appendChild(ul);
+}
 function hkKarte(st) {
   const r = hkRegel(), card = document.createElement("div");
   card.style.cssText = "border:1px solid #c55a11;border-radius:9px;padding:10px 12px;margin:4px 0 14px";
@@ -879,6 +896,7 @@ function hkKarte(st) {
       if (v) st.hk = v; else delete st.hk;
       hkWerteAnpassen(st);
       document.querySelectorAll(".taps").forEach(w => { if (w._refresh) w._refresh(); });
+      document.querySelectorAll(".hkbew").forEach(el => hkBewertungFuellen(el, st));
       save(); renderHead(); renderGradeBox();
       taps.querySelectorAll("button").forEach((x, j) => x.setAttribute("aria-pressed", String(j === v)));
     });
@@ -1151,6 +1169,14 @@ function critBlock(st, crit, grp, sec) {
     so.innerHTML = (crit.sofort_titel ? "<b>" + escHtml(crit.sofort_titel) + "</b> " : "") +
                    crit.sofort.map(escHtml).join(" · ");
     d.appendChild(so);
+  }
+  const hkG = hkGruppe();
+  if (hkG && (hkG.criteria || []).some(c => c.field === crit.field)) {
+    const hb = document.createElement("div");
+    hb.className = "hkbew";
+    hb.style.cssText = "margin:4px 0 8px 30px;padding:8px 10px;border-left:3px solid #c55a11;background:#fbf3ec;border-radius:6px";
+    hkBewertungFuellen(hb, st);
+    d.appendChild(hb);
   }
   const bullets = crit.bullets || [], schema = crit.schema || [];
   if (crit.intro && (bullets.length || schema.length || crit.intro !== crit.short)) {
