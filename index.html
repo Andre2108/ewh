@@ -545,7 +545,8 @@ function sectionTotal(st, sec, aktiv) {
       const v = st.p[c.field];
       if (typeof v === "number") summe += v;
     });
-    teil += (grp.max ? Math.min(summe, grp.max) : summe);
+    const gmax = hkGruppenMax(st, grp);
+    teil += (gmax ? Math.min(summe, gmax) : summe);
   });
   return sec.max ? Math.min(teil, sec.max) : teil;
 }
@@ -806,9 +807,9 @@ function abwPruefen(st) {
   return false;
 }
 /* ---------------- Hilfekarten ----------------
-   Optional (Config-Block "hilfekarten"): Wer sich Hilfe geholt hat, bekommt
-   je Stufe einen festen Notenabzug. Wie bei der Abwertung bleibt die
-   Punktzahl unverändert, erst die fertige Note sinkt um den Wert der Stufe.
+   Optional (Config-Block "hilfekarten"): Wer sich Hilfe geholt hat, kann in
+   der zugehörigen Teilaufgabe nur noch eine geringere Höchstpunktzahl
+   erreichen ("max" je Stufe). Die Note ergibt sich weiter nur aus Punkten.
    Welche Stufen es gibt und wo die Tasten stehen, sagt nur die Config. */
 function hkRegel() { return (CFG && CFG.hilfekarten) || null; }
 function hkStufe(st) {
@@ -816,7 +817,12 @@ function hkStufe(st) {
   if (!r || !st || st.a) return 0;
   return Math.max(0, Math.min(r.stufen.length, st.hk || 0));
 }
-function hkNp(st) { const s = hkStufe(st); return s ? hkRegel().stufen[s - 1].np : 0; }
+// Höchstpunktzahl einer Teilaufgabe - bei genutzter Hilfe die Grenze der Stufe.
+function hkGruppenMax(st, grp) {
+  const r = hkRegel(), s = hkStufe(st);
+  if (!r || !s || r.nach_gruppe !== grp.titel) return grp.max;
+  return Math.min(grp.max || Infinity, r.stufen[s - 1].max);
+}
 function hkKarte(st) {
   const r = hkRegel(), card = document.createElement("div");
   card.className = "card";
@@ -835,7 +841,7 @@ function hkKarte(st) {
   [{ label: "keine", np: 0 }].concat(r.stufen).forEach((s, v) => {
     const b = document.createElement("button");
     b.className = "tap"; b.type = "button"; b.style.padding = "0 12px";
-    b.textContent = v ? s.label + " (−" + s.np + ")" : "keine";
+    b.textContent = v ? s.label + " (max " + fmtP(s.max) + ")" : "keine";
     b.setAttribute("aria-pressed", String(hkStufe(st) === v));
     b.addEventListener("click", () => {
       if (v) st.hk = v; else delete st.hk;
@@ -852,10 +858,10 @@ function notenKurz(np) {
   return r ? r[2] : "–";
 }
 function noteFuer(st) {
-  const g = grade(total(st)), ab = abwWert(st), hk = hkNp(st);
-  if (!ab && !hk) return { np: g.np, kurz: g.kurz, ab: 0, hk: 0, npRoh: g.np, kurzRoh: g.kurz };
-  const np = Math.max(0, g.np - ab - hk);
-  return { np, kurz: notenKurz(np), ab, hk, npRoh: g.np, kurzRoh: g.kurz };
+  const g = grade(total(st)), ab = abwWert(st);
+  if (!ab) return { np: g.np, kurz: g.kurz, ab: 0, npRoh: g.np };
+  const np = Math.max(0, g.np - ab);
+  return { np, kurz: notenKurz(np), ab, npRoh: g.np };
 }
 
 /* ---------------- Kursliste ----------------
@@ -1248,8 +1254,9 @@ function renderGradeBox() {
   sub.textContent = fmtP(pts) + " von " + CFG.meta.combination_max + " Punkten · " +
                     (pr.n === pr.of ? "vollständig" : pr.n + " von " + pr.of + " Kriterien") +
                     (g.ab ? " · abgewertet um " + g.ab + " (statt " + g.npRoh + ")" : "") +
-                    (g.hk ? " · " + hkRegel().stufen[hkStufe(st) - 1].label + ": −" + g.hk +
-                            (g.hk === 1 ? " Tendenz" : " Tendenzen") + " (statt " + g.kurzRoh + ")" : "");
+                    (hkStufe(st) ? " · " + hkRegel().stufen[hkStufe(st) - 1].label + ": " +
+                            hkRegel().nach_gruppe.split(" – ")[0] + " höchstens " +
+                            fmtP(hkRegel().stufen[hkStufe(st) - 1].max) + " Punkte" : "");
   // Grenzfall-Hinweis: Abstand nach oben und nach unten. Genau da, wo man
   // ohnehin lange ueberlegt, steht damit sofort, worum es geht.
   const rows = CFG.notenfindung;
@@ -1433,7 +1440,11 @@ function notenpunkteAus(cfg, data) {
         }
         let summe = 0;
         krit.forEach(c => { if (typeof p[c.field] === "number") summe += p[c.field]; });
-        teil += grp.max ? Math.min(summe, grp.max) : summe;
+        let gmax = grp.max;
+        const hk = cfg.hilfekarten;
+        if (hk && st.hk && hk.nach_gruppe === grp.titel)
+          gmax = Math.min(gmax || Infinity, hk.stufen[Math.min(hk.stufen.length, st.hk) - 1].max);
+        teil += gmax ? Math.min(summe, gmax) : summe;
       });
       gesamt += sec.max ? Math.min(teil, sec.max) : teil;
     });
@@ -1441,8 +1452,6 @@ function notenpunkteAus(cfg, data) {
     tabelle.forEach(r => { if (gesamt >= r[0]) np = r[1]; });
     const abw = cfg.abwertung;
     if (abw && p[abw.feld] === 0 && st.ab) np = Math.max(0, np - Math.min(abw.max_np, st.ab));
-    const hk = cfg.hilfekarten;
-    if (hk && st.hk) np = Math.max(0, np - hk.stufen[Math.min(hk.stufen.length, st.hk) - 1].np);
     werte.push(np);
   });
   return werte;
