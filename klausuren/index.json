@@ -6,7 +6,12 @@
    "kurs": "D GK Q2",
    "datum": "05.10.2026",
    "fach": "Deutsch",
-   "file": "klausuren/ewh-heimsuchung-tuchfabrikant-d-gk-q2.json"
+   "file": "klausuren/ewh-heimsuchung-tuchfabrikant-d-gk-q2.json",
+   "inhalte": [
+    "Aufgabenart Ia: Analyse eines Romanauszugs",
+    "Einordnung in Roman und historischen Kontext",
+    "Beurteilung: Heimat im Exil (Fetscher-Zitat)"
+   ]
   },
   {
    "id": "ewh-heimsuchung-frau-des-architekten-nachschrift-d-gk-q2",
@@ -19,7 +24,12 @@
    "kuerzel": [
     "KJT"
    ],
-   "art": "Klausur"
+   "art": "Klausur",
+   "inhalte": [
+    "Aufgabenart Ia: Analyse eines Romanauszugs",
+    "Einordnung in Roman und historischen Kontext",
+    "Erörterung: Lachen als Überlebensstrategie oder Verdrängung"
+   ]
   },
   {
    "id": "ewh-its-my-party-6c",
@@ -32,7 +42,14 @@
    "status": "fertig",
    "fertig_am": "10.10.2026",
    "bewertet": 29,
-   "fehlend": 1
+   "fehlend": 1,
+   "inhalte": [
+    "Listening: Multiple Choice, true/false mit Korrektur",
+    "Dates schreiben und sprechen",
+    "Party-Wortschatz",
+    "Grammar: can/can't/mustn't, must/mustn't/needn't",
+    "Mediation: E-Mail (Partyspiel erklären)"
+   ]
   },
   {
    "id": "ewh-welcome-to-greenwich-5d",
@@ -41,7 +58,12 @@
    "datum": "12.10.2026",
    "fach": "Englisch",
    "file": "klausuren/ewh-welcome-to-greenwich-5d.json",
-   "art": "Arbeit"
+   "art": "Arbeit",
+   "inhalte": [
+    "Words: park, school, sports and fun",
+    "Grammar: to be (long and short forms), a/an, personal pronouns",
+    "Writing: introduce yourself"
+   ]
   },
   {
    "id": "ewh-westbuehl-6c",
@@ -50,6 +72,12 @@
    "datum": "13.10.2026",
    "fach": "Deutsch",
    "file": "klausuren/ewh-westbuehl-6c.json",
+   "inhalte": [
+    "Textverständnis Jugendroman (Fragen in ganzen Sätzen)",
+    "Charakterisierung mit Belegsätzen (Zitieren mit vgl.)",
+    "Wahl: E-Mail-Antwort oder innerer Monolog",
+    "Hilfekarten (gestufte Hilfe gegen Punkte)"
+   ],
    "art": "Arbeit"
   }
  ]
