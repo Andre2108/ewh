@@ -11,7 +11,8 @@
     "Aufgabenart Ia: Analyse eines Romanauszugs",
     "Einordnung in Roman und historischen Kontext",
     "Beurteilung: Heimat im Exil (Fetscher-Zitat)"
-   ]
+   ],
+   "oberthema": "Heimsuchung – Der Tuchfabrikant"
   },
   {
    "id": "ewh-heimsuchung-frau-des-architekten-nachschrift-d-gk-q2",
@@ -29,7 +30,8 @@
     "Aufgabenart Ia: Analyse eines Romanauszugs",
     "Einordnung in Roman und historischen Kontext",
     "Erörterung: Lachen als Überlebensstrategie oder Verdrängung"
-   ]
+   ],
+   "oberthema": "Heimsuchung – Die Frau des Architekten"
   },
   {
    "id": "ewh-its-my-party-6c",
@@ -49,7 +51,8 @@
     "Party-Wortschatz",
     "Grammar: can/can't/mustn't, must/mustn't/needn't",
     "Mediation: E-Mail (Partyspiel erklären)"
-   ]
+   ],
+   "oberthema": "Party"
   },
   {
    "id": "ewh-welcome-to-greenwich-5d",
@@ -63,7 +66,8 @@
     "Words: park, school, sports and fun",
     "Grammar: to be (long and short forms), a/an, personal pronouns",
     "Writing: introduce yourself"
-   ]
+   ],
+   "oberthema": "Welcome to Greenwich"
   },
   {
    "id": "ewh-westbuehl-6c",
@@ -72,6 +76,7 @@
    "datum": "13.10.2026",
    "fach": "Deutsch",
    "file": "klausuren/ewh-westbuehl-6c.json",
+   "oberthema": "Rico, Oskar und die Tieferschatten – Charakterisierung",
    "inhalte": [
     "Textverständnis Jugendroman (Fragen in ganzen Sätzen)",
     "Charakterisierung mit Belegsätzen (Zitieren mit vgl.)",

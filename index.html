@@ -198,6 +198,7 @@ pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--pape
 .kursKopf + .abgRow{border-top:0}
 .abgRow .nr{font-weight:700;min-width:22px}
 .abgRow .dat{color:var(--soft)}
+.abgRow .ober{font-weight:700;flex:1;min-width:0}
 .abgRow .sch{margin-left:auto;font-weight:700;color:var(--ink)}
 .abgRow .sch.laeuft{font-weight:400;color:var(--soft)}
 .abgPfeil{font-size:10px;width:9px;color:var(--soft)}
@@ -1580,6 +1581,12 @@ function istAbgeschlossen(e) {
 }
 // Inhalte einer Arbeit (Grammatik, Textsorten, Listening …): aus dem Katalog,
 // sonst aus der gespeicherten Klausurdatei.
+// Oberthema (fett neben dem Datum): Katalog, sonst Klausurdatei, sonst Titel.
+function oberthemaVon(e) {
+  if (e.oberthema) return e.oberthema;
+  const c = lsGet(K_CFG(e.id));
+  return (c && c.meta && c.meta.oberthema) || e.titel || "";
+}
 function inhalteVon(e) {
   if (Array.isArray(e.inhalte) && e.inhalte.length) return e.inhalte;
   const c = lsGet(K_CFG(e.id));
@@ -1607,9 +1614,11 @@ function renderAbgeschlossen() {
       .forEach((e, i) => {
         const row = document.createElement("div");
         row.className = "abgRow";
-        row.innerHTML = '<span class="nr"></span><span class="dat"></span><span class="sch"></span>';
+        row.innerHTML = '<span class="nr"></span><span class="dat"></span><span class="ober"></span>' +
+                        '<span class="sch"></span>';
         row.querySelector(".nr").textContent = (i + 1) + ".";
         row.querySelector(".dat").textContent = e.datum;
+        row.querySelector(".ober").textContent = oberthemaVon(e);
         const sch = row.querySelector(".sch");
         const inhalte = inhalteVon(e);
         const inhaltEl = inhalte.length ? document.createElement("div") : null;
