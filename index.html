@@ -1049,6 +1049,9 @@ function weiterScrollen(taps, verzoegerung) {
 const FORMAT_OFFEN = /writing|schreib|mediation|sprachmittlung|darstellung|analys|erörter|interpret|essay|comment|kommentar|creative|kreativ|brief|letter|text produc|textprodu/i;
 const FORMAT_GESCHLOSSEN = /listening|hör|vocab|grammar|grammatik|wortschatz|vokabel|reading|leseverst|use of english|lücken|gap|multiple|true\/false|rechtschreib|diktat/i;
 function kriteriumAufgeklappt(sec, grp, crit) {
+  // Ausdrückliche Vorgabe der Config (Kriterium vor Teilaufgabe) geht vor.
+  if (crit && typeof crit.aufgeklappt === "boolean") return crit.aufgeklappt;
+  if (grp && typeof grp.aufgeklappt === "boolean") return grp.aufgeklappt;
   const fest = (grp && grp.aufgabenformat) || (sec && sec.aufgabenformat);
   if (fest === "geschlossen") return true;
   if (fest === "offen") return false;
@@ -1095,6 +1098,14 @@ function critBlock(st, crit, grp, sec) {
   };
   updateCmax();
   d.appendChild(head);
+  // "sofort": kurze Lösungsübersicht, immer sichtbar (nur App, nicht im Word-EWH)
+  if (crit.sofort && crit.sofort.length) {
+    const so = document.createElement("p");
+    so.className = "long"; so.style.margin = "4px 0 6px 30px";
+    so.innerHTML = (crit.sofort_titel ? "<b>" + escHtml(crit.sofort_titel) + "</b> " : "") +
+                   crit.sofort.map(escHtml).join(" · ");
+    d.appendChild(so);
+  }
   const bullets = crit.bullets || [], schema = crit.schema || [];
   if (crit.intro && (bullets.length || schema.length || crit.intro !== crit.short)) {
     const btn = document.createElement("button");
@@ -1117,7 +1128,8 @@ function critBlock(st, crit, grp, sec) {
       schema.forEach(t => { const li = document.createElement("li"); li.innerHTML = schemaHtml(t); ul2.appendChild(li); });
       long.appendChild(ul2);
     }
-    const beschriften = () => { btn.textContent = long.hidden ? "Kriterium anzeigen" : "Kriterium ausblenden"; };
+    const was = crit.mehr_label || "Kriterium";
+    const beschriften = () => { btn.textContent = was + (long.hidden ? " anzeigen" : " ausblenden"); };
     beschriften();
     btn.onclick = () => { long.hidden = !long.hidden; beschriften(); };
     d.appendChild(btn); d.appendChild(long);
