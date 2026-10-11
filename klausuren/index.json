@@ -33,6 +33,15 @@
    "fertig_am": "10.10.2026",
    "bewertet": 29,
    "fehlend": 1
+  },
+  {
+   "id": "ewh-welcome-to-greenwich-5d",
+   "titel": "Welcome to Greenwich (Class test no. 1)",
+   "kurs": "E-5d",
+   "datum": "12.10.2026",
+   "fach": "Englisch",
+   "file": "klausuren/ewh-welcome-to-greenwich-5d.json",
+   "art": "Arbeit"
   }
  ]
 }
