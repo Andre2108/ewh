@@ -541,6 +541,11 @@ function activate(cfg, openIdx) {
   // "wa" (war abwesend): bleibt dauerhaft gesetzt, auch nach "Freischalten" -
   // damit jemand, der urspruenglich fehlte und spaeter nachgeschrieben hat,
   // in der Fehlend-Uebersicht sichtbar bleibt statt spurlos zu verschwinden.
+  // Dauerhaft umbenannte Kuerzel (meta.kuerzel_umbenannt: alt -> neu) auch im
+  // schon gespeicherten Stand nachziehen - sonst kaeme die Arbeit weiter mit
+  // dem alten Kuerzel am PC an und faende in der Kuerzel-Tabelle keinen Namen.
+  const umbenannt = CFG.meta.kuerzel_umbenannt || {};
+  state.students.forEach(s => { if (s.k && umbenannt[s.k]) s.k = umbenannt[s.k]; });
   state.students.forEach(s => { s.w = Object.assign({}, DEFAULT_WAHL, s.w || {}); s.p = s.p || {}; s.a = !!s.a; s.wa = !!(s.wa || s.a); abwVermerkBereinigen(s); abwPruefen(s); });
   kursliste = lsGet(K_KURS(CFG.meta.kurs)) || [];
   if (istProzentual()) {
