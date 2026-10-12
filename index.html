@@ -116,7 +116,11 @@ textarea{min-height:96px;resize:vertical;line-height:1.45;font-family:var(--mono
   font-size:15px;cursor:pointer}
 .btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}
 .btn.quiet{color:var(--soft)}
+.btn:disabled{opacity:.4;cursor:default}
 .row{display:flex;gap:8px;flex-wrap:wrap}
+.tauschCard summary{cursor:pointer;font-weight:650;font-size:14px;color:var(--mark)}
+.tauschSel{flex:1;min-width:0;padding:11px 8px;border:1px solid var(--line);border-radius:9px;
+  background:var(--card);font-size:16px}
 pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--paper);
   border:1px solid var(--line);border-radius:9px;padding:11px;margin:0;
   white-space:pre-wrap;word-break:break-all;max-height:230px;overflow:auto}
@@ -308,6 +312,32 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     <div class="card" id="studentList"></div>
     <p class="muted" style="margin:2px 0 0">Mit <b>fehlt</b> markierst du, wer nicht mitgeschrieben hat: zählt nicht als offen, bleibt in der Excel-Tabelle hellrot und leer.</p>
     <p class="muted" id="missInfo" style="margin:11px 0 0"></p>
+    <details class="card tauschCard" id="tauschCard" style="margin-top:18px">
+      <summary>Punkte tauschen oder übertragen</summary>
+      <p class="muted" style="margin:9px 0">Nur für Verwechslungen: Punkte, Wahl, Hilfekarten, Fokusschwerpunkt und Fehlvermerk wandern mit, das Kürzel bleibt stehen.</p>
+      <div class="seg" id="tauschSeg">
+        <button type="button" data-modus="tauschen" aria-pressed="true">Tauschen</button>
+        <button type="button" data-modus="uebertragen" aria-pressed="false">Übertragen</button>
+      </div>
+      <div class="row" style="align-items:center;flex-wrap:nowrap;margin-top:6px">
+        <select id="tauschVon" class="tauschSel" aria-label="Von"></select>
+        <span id="tauschPfeil" style="flex:none;font-size:18px">⇄</span>
+        <select id="tauschZu" class="tauschSel" aria-label="Nach"></select>
+      </div>
+      <div class="row" style="margin-top:10px" id="tauschStart">
+        <button class="btn" type="button" id="tauschWeiter">Weiter …</button>
+        <button class="btn quiet" type="button" id="tauschUndo" hidden>Letzte Änderung rückgängig</button>
+      </div>
+      <div id="tauschBestaetigung" hidden style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px">
+        <p id="tauschText" style="margin:0 0 10px;font-size:14px;line-height:1.5"></p>
+        <label class="muted" for="tauschEingabe" id="tauschLabel"></label>
+        <input type="text" id="tauschEingabe" autocomplete="off" autocapitalize="characters" spellcheck="false" style="margin-top:7px">
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" type="button" id="tauschOk" disabled></button>
+          <button class="btn quiet" type="button" id="tauschAbbruch">Abbrechen</button>
+        </div>
+      </div>
+    </details>
   </section>
 
   <section id="viewBewerten" hidden>
@@ -1014,6 +1044,101 @@ function renderKurs() {
   const fertigN = state.students.filter(s => { const p = filled(s); return p.of && p.n === p.of; }).length;
   document.getElementById("missInfo").textContent =
     state.students.length + " Arbeiten · " + fertigN + " fertig · " + fehlt + " fehlend";
+  renderTausch();
+}
+
+/* ---------------- Punkte tauschen / uebertragen ----------------
+   Korrektur bei Verwechslungen (Bewertung unter dem falschen Kuerzel
+   eingetragen). Bewegt den kompletten Bewertungsstand einer Arbeit - alles
+   ausser dem Kuerzel selbst. Zweistufig abgesichert: erst auswaehlen, dann
+   das Ziel-Kuerzel zur Bestaetigung eintippen. Die letzte Aenderung laesst
+   sich (bis zum Neuladen) rueckgaengig machen. */
+let tauschModus = "tauschen", tauschRueck = null;
+function tauschKz(i) { return state.students[i].k || String(i + 1).padStart(2, "0"); }
+function tauschStand(st) {
+  if (st.a) return "fehlt";
+  const pr = filled(st);
+  if (!pr.n) return "keine Punkte";
+  return fmtP(total(st)) + " P. · " + noteFuer(st).kurz + (pr.n < pr.of ? " (" + pr.n + "/" + pr.of + " bewertet)" : "");
+}
+function tauschSchliessen() {
+  document.getElementById("tauschBestaetigung").hidden = true;
+  document.getElementById("tauschStart").hidden = false;
+  document.getElementById("tauschEingabe").value = "";
+}
+function renderTausch() {
+  const vonSel = document.getElementById("tauschVon"), zuSel = document.getElementById("tauschZu");
+  const alt = [vonSel.value, zuSel.value];
+  [vonSel, zuSel].forEach((sel, j) => {
+    sel.innerHTML = "";
+    state.students.forEach((st, i) => {
+      const o = document.createElement("option");
+      o.value = String(i);
+      o.textContent = tauschKz(i) + " – " + tauschStand(st);
+      sel.appendChild(o);
+    });
+    const n = state.students.length;
+    sel.value = (alt[j] !== "" && +alt[j] < n) ? alt[j] : String(Math.min(j, n - 1));
+  });
+  document.querySelectorAll("#tauschSeg button").forEach(b => {
+    b.setAttribute("aria-pressed", String(b.dataset.modus === tauschModus));
+    b.onclick = () => { tauschModus = b.dataset.modus; tauschSchliessen(); renderTausch(); };
+  });
+  document.getElementById("tauschPfeil").textContent = tauschModus === "tauschen" ? "⇄" : "→";
+  vonSel.onchange = zuSel.onchange = tauschSchliessen;
+  const undo = document.getElementById("tauschUndo");
+  undo.hidden = !(tauschRueck && tauschRueck.exam === CFG.meta.storage_id);
+  undo.onclick = () => {
+    const r = tauschRueck;
+    if (!r || r.exam !== CFG.meta.storage_id) return;
+    if (!confirm("Letzte Änderung (" + r.text + ") rückgängig machen?")) return;
+    state.students[r.von] = r.a; state.students[r.zu] = r.b;
+    tauschRueck = null;
+    save(); renderKurs(); renderHead(); refreshNachschriftenBadge();
+    flash("Rückgängig gemacht");
+  };
+  document.getElementById("tauschWeiter").onclick = () => {
+    const von = +vonSel.value, zu = +zuSel.value;
+    if (von === zu) { flash("Bitte zwei verschiedene Kürzel wählen"); return; }
+    const a = state.students[von], b = state.students[zu], ka = tauschKz(von), kb = tauschKz(zu);
+    const leer = st => !st.a && !filled(st).n && !st.f;
+    let text;
+    if (tauschModus === "tauschen") {
+      text = "<b>" + escHtml(ka) + "</b> (" + tauschStand(a) + ") und <b>" + escHtml(kb) + "</b> (" + tauschStand(b) +
+             ") tauschen ihre komplette Bewertung.";
+    } else {
+      text = "Die komplette Bewertung von <b>" + escHtml(ka) + "</b> (" + tauschStand(a) + ") geht auf <b>" + escHtml(kb) +
+             "</b> über. " + escHtml(ka) + " ist danach leer." +
+             (leer(b) ? "" : ' <b style="color:#b91c1c">Die bisherige Bewertung von ' + escHtml(kb) + " (" + tauschStand(b) + ") wird überschrieben.</b>");
+    }
+    document.getElementById("tauschText").innerHTML = text;
+    document.getElementById("tauschLabel").textContent = "Zur Bestätigung „" + kb + "“ eintippen";
+    const eingabe = document.getElementById("tauschEingabe"), ok = document.getElementById("tauschOk");
+    ok.textContent = tauschModus === "tauschen" ? "Endgültig tauschen" : "Endgültig übertragen";
+    ok.disabled = true;
+    eingabe.value = "";
+    eingabe.oninput = () => { ok.disabled = eingabe.value.trim().toUpperCase() !== kb.trim().toUpperCase(); };
+    ok.onclick = () => { if (!ok.disabled) tauschAusfuehren(von, zu, tauschModus); };
+    document.getElementById("tauschAbbruch").onclick = tauschSchliessen;
+    document.getElementById("tauschStart").hidden = true;
+    document.getElementById("tauschBestaetigung").hidden = false;
+    eingabe.focus();
+  };
+}
+function tauschAusfuehren(von, zu, modus) {
+  const kopie = o => JSON.parse(JSON.stringify(o));
+  const a = state.students[von], b = state.students[zu], ka = tauschKz(von), kb = tauschKz(zu);
+  const text = modus === "tauschen" ? ka + " ⇄ " + kb : ka + " → " + kb;
+  tauschRueck = { exam: CFG.meta.storage_id, von, zu, a: kopie(a), b: kopie(b), text };
+  const inhalt = st => { const o = kopie(st); delete o.k; return o; };
+  const setze = (st, o) => { const k = st.k; Object.keys(st).forEach(x => delete st[x]); Object.assign(st, { k }, o); };
+  const ia = inhalt(a), ib = inhalt(b);
+  if (modus === "tauschen") { setze(a, ib); setze(b, ia); }
+  else { setze(b, ia); const neu = blankStudent(von); delete neu.k; setze(a, neu); }
+  [a, b].forEach(st => abwPruefen(st));
+  tauschSchliessen();
+  save(); renderKurs(); renderHead(); refreshNachschriftenBadge();
+  flash((modus === "tauschen" ? "Getauscht: " : "Übertragen: ") + text + " – danach erneut „An PC senden“");
 }
 
 /* ---------------- Bewertungsbogen ---------------- */

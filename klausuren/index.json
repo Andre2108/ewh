@@ -67,7 +67,11 @@
     "Grammar: to be (long and short forms), a/an, personal pronouns",
     "Writing: introduce yourself"
    ],
-   "oberthema": "Welcome to Greenwich"
+   "oberthema": "Welcome to Greenwich",
+   "status": "fertig",
+   "fertig_am": "12.10.2026",
+   "bewertet": 28,
+   "fehlend": 0
   },
   {
    "id": "ewh-westbuehl-6c",
