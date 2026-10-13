@@ -138,6 +138,17 @@ pre{font-family:var(--mono);font-size:11px;line-height:1.5;background:var(--pape
   background:var(--ink);color:#fff;padding:10px 16px;border-radius:9px;font-size:14px;
   opacity:0;pointer-events:none;transition:opacity .2s ease;max-width:90%;text-align:center}
 .flash.show{opacity:1}
+/* Herunterziehen zum Aktualisieren (nur in der Klausuruebersicht) */
+html.ptrAktiv{overscroll-behavior-y:contain}
+.ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 8px);z-index:45;
+  width:38px;height:38px;margin-left:-19px;border-radius:50%;background:var(--card);
+  border:1px solid var(--line);box-shadow:0 2px 8px rgba(20,33,46,.18);color:var(--soft);
+  display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;
+  opacity:0;transform:translateY(-60px);pointer-events:none}
+.ptr.bereit{color:var(--mark)}
+.ptr.laedt span{animation:ptrDreh .8s linear infinite}
+.ptr span{display:block}
+@keyframes ptrDreh{to{transform:rotate(360deg)}}
 .alert{background:#fff4e6;border:1px solid #f0c48a;color:#7c4a06;border-radius:10px;
   padding:11px 13px;font-size:13px;line-height:1.5;margin-bottom:12px}
 .privacy{font-size:12px;color:var(--soft);line-height:1.5;margin:10px 0 0}
@@ -415,6 +426,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 </div>
 
 <div class="flash" id="flash"></div>
+<div class="ptr" id="ptr" aria-hidden="true"><span>↻</span></div>
 
 <script>
 "use strict";
@@ -2214,6 +2226,7 @@ function exportFilename() {
 }
 function setView(v) {
   view = v;
+  document.documentElement.classList.toggle("ptrAktiv", v === "klausuren");
   document.getElementById("viewKlausuren").hidden = (v !== "klausuren");
   document.getElementById("viewKurs").hidden = (v !== "kurs");
   document.getElementById("viewBewerten").hidden = (v !== "bewerten");
@@ -2224,6 +2237,44 @@ function setView(v) {
   if (v === "sichern") { document.getElementById("exportBox").hidden = true; renderStorageInfo(); renderDoneBox(); }
   renderHead();
   window.scrollTo(0, 0);
+}
+
+// Herunterziehen zum Aktualisieren: wirkt wie „Liste aktualisieren“ (echter
+// Seiten-Reload), aber nur in der Klausuruebersicht und nur vom oberen Rand
+// aus - beim Bewerten loest Scrollen so nie versehentlich einen Reload aus.
+// Die Browser-eigene Geste ist dort per overscroll-behavior abgeschaltet
+// (Klasse "ptrAktiv"), damit nicht zwei Reloads gleichzeitig starten.
+function herunterziehenEinrichten() {
+  const el = document.getElementById("ptr"), SCHWELLE = 70, MAX = 110;
+  let startY = null, weg = 0, laedt = false;
+  const zeigen = (d, animiert) => {
+    el.style.transition = animiert ? "transform .2s ease, opacity .2s ease" : "none";
+    el.style.opacity = d > 0 ? Math.min(1, d / SCHWELLE) : 0;
+    el.style.transform = "translateY(" + (d > 0 ? Math.min(d, MAX) - 46 : -60) + "px) rotate(" + (d * 3) + "deg)";
+    el.classList.toggle("bereit", d >= SCHWELLE);
+  };
+  window.addEventListener("touchstart", e => {
+    if (laedt || view !== "klausuren" || e.touches.length !== 1 || window.scrollY > 0) { startY = null; return; }
+    startY = e.touches[0].clientY; weg = 0;
+  }, { passive: true });
+  window.addEventListener("touchmove", e => {
+    if (startY === null) return;
+    const d = e.touches[0].clientY - startY;
+    if (d <= 0 || window.scrollY > 0) { if (weg) zeigen(0, true); startY = null; weg = 0; return; }
+    weg = d * 0.5;                       // gedaempft: fuehlt sich wie ein Gummiband an
+    zeigen(weg, false);
+  }, { passive: true });
+  const ende = () => {
+    if (startY === null) return;
+    startY = null;
+    if (weg < SCHWELLE) { zeigen(0, true); weg = 0; return; }
+    laedt = true;
+    zeigen(SCHWELLE, true); el.classList.add("laedt");
+    if (CFG && state) { clearTimeout(saveTimer); state.saved = new Date().toISOString(); lsSet(K_DATA(CFG.meta.storage_id), state); }
+    setTimeout(() => location.reload(), 250);
+  };
+  window.addEventListener("touchend", ende, { passive: true });
+  window.addEventListener("touchcancel", () => { if (startY !== null) { startY = null; weg = 0; zeigen(0, true); } }, { passive: true });
 }
 
 /* ---------------- Start ---------------- */
@@ -2240,6 +2291,7 @@ function setView(v) {
     flash("Aktualisiere …");
     setTimeout(() => location.reload(), 150);
   };
+  herunterziehenEinrichten();
   document.getElementById("tidyBtn").onclick = () => {
     const weg = tidyStorage();
     if (!weg.length) { flash("Nichts aufzuräumen"); return; }
