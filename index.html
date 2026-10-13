@@ -431,6 +431,10 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 <script>
 "use strict";
 const CATALOG_URL = "klausuren/index.json";
+// Kopie einer Kollegin (Fork): Gibt es den Ordner eigene-klausuren/, zeigt die
+// App nur dessen Katalog. Den Ordner gibt es nur dort - so laufen App-Updates
+// aus diesem Repository ohne Konflikte in die Kopie (siehe ANLEITUNG-KOLLEGIN.md).
+const CATALOG_EIGEN = "eigene-klausuren/index.json";
 const K_CATALOG = "ewh:app:catalog";
 const K_SEEN = "ewh:app:seen_ids";
 const K_FARBEN = "ewh:app:kursfarben";
@@ -472,7 +476,8 @@ async function loadCatalog(force) {
   try {
     // Zeitstempel gegen zwischengespeicherte Auslieferung: ohne ihn kann der
     // Webserver den Katalog noch minutenlang im alten Stand herausgeben.
-    const res = await fetch(CATALOG_URL + "?t=" + Date.now(), { cache: "no-store" });
+    let res = await fetch(CATALOG_EIGEN + "?t=" + Date.now(), { cache: "no-store" });
+    if (res.status === 404) res = await fetch(CATALOG_URL + "?t=" + Date.now(), { cache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
     catalog = data.klausuren || [];

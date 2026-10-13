@@ -1,0 +1,92 @@
+# Nur für Kopien (Forks) dieses Repositorys, z. B. die einer Kollegin.
+# Im Original andre2108/ewh läuft hier nichts (siehe "if" an jedem Job).
+#
+# Was der Ablauf in der Kopie erledigt - ohne dass jemand etwas antippen muss:
+#  1. Änderungen aus einer Claude-Sitzung (Zweig claude/...) nach main übernehmen
+#  2. neue App-Versionen aus andre2108/ewh übernehmen (alle drei Stunden)
+#  3. die App als GitHub-Pages-Seite veröffentlichen
+# Einmalig nötig: Actions in der Kopie aktivieren und unter Settings → Pages
+# als Quelle "GitHub Actions" wählen (siehe ANLEITUNG-KOLLEGIN.md).
+name: App aktualisieren und veröffentlichen
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  schedule:
+    - cron: "23 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: app-aktualisieren
+  cancel-in-progress: false
+
+env:
+  ORIGINAL: https://github.com/andre2108/ewh.git
+
+jobs:
+  aktualisieren:
+    if: github.repository != 'andre2108/ewh'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Git einrichten
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+
+      - name: Änderungen aus der Claude-Sitzung übernehmen
+        if: startsWith(github.ref, 'refs/heads/claude/')
+        run: |
+          zweig="${GITHUB_REF#refs/heads/}"
+          git fetch origin "$zweig"
+          if ! git merge --no-edit "origin/$zweig"; then
+            git merge --abort
+            echo "::error::Der Zweig $zweig ließ sich nicht automatisch nach main übernehmen. Bitte Claude bitten, den Konflikt zu lösen."
+            exit 1
+          fi
+
+      - name: Neue App-Version aus dem Original übernehmen
+        run: |
+          git fetch "$ORIGINAL" main
+          if ! git merge --no-edit FETCH_HEAD; then
+            git merge --abort
+            echo "::warning::Die neue App-Version ließ sich nicht automatisch übernehmen (Konflikt). Die eigenen Arbeiten werden trotzdem veröffentlicht."
+          fi
+
+      - name: main speichern
+        run: git push origin HEAD:main
+
+      # Pages darf nur von main aus veröffentlichen. Pushes mit dem Actions-
+      # Schlüssel starten keinen neuen Lauf - darum ausdrücklich anstoßen.
+      - name: Veröffentlichung auf main anstoßen
+        if: github.ref != 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run kopie-aktualisieren.yml --ref main --repo "$GITHUB_REPOSITORY"
+
+      - name: Seite zusammenpacken
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  veroeffentlichen:
+    if: github.repository != 'andre2108/ewh' && github.ref == 'refs/heads/main'
+    needs: aktualisieren
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.seite.outputs.page_url }}
+    steps:
+      - id: seite
+        uses: actions/deploy-pages@v4
