@@ -87,7 +87,11 @@
     "Wahl: E-Mail-Antwort oder innerer Monolog",
     "Hilfekarten (gestufte Hilfe gegen Punkte)"
    ],
-   "art": "Arbeit"
+   "art": "Arbeit",
+   "status": "fertig",
+   "fertig_am": "14.10.2026",
+   "bewertet": 29,
+   "fehlend": 0
   }
  ]
 }
