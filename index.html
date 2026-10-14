@@ -615,9 +615,13 @@ function sectionTotal(st, sec, aktiv) {
 }
 function filled(st) {
   if (st.a) return { n: 0, of: 0 };                 // fehlt: zaehlt weder als offen noch als fertig
-  const a = activeFields(st); let n = 0;
-  a.forEach(f => { if (typeof st.p[f] === "number") n++; });
-  return { n, of: a.size };
+  // Reservezeilen sind freiwillig und zaehlen nicht als offenes Kriterium.
+  const a = activeFields(st); let n = 0, of = 0;
+  ALL.forEach(c => {
+    if (c.reserve || !a.has(c.field)) return;
+    of++; if (typeof st.p[c.field] === "number") n++;
+  });
+  return { n, of };
 }
 function missing() { return state.students.filter(s => s.a).length; }
 function activeCount(cfg, st) {
@@ -627,8 +631,8 @@ function activeCount(cfg, st) {
     if (grp.type === "wahlaufgabe") {
       const pick = (st.w && st.w[sec.key + ":" + gi]) || grp.options[0].key;
       const o = grp.options.find(x => x.key === pick) || grp.options[0];
-      n += o.criteria.length;
-    } else { n += grp.criteria.length; }
+      n += o.criteria.filter(c => !c.reserve).length;
+    } else { n += grp.criteria.filter(c => !c.reserve).length; }
   }));
   return n;
 }
@@ -1128,7 +1132,7 @@ function renderTausch() {
     const von = +vonSel.value, zu = +zuSel.value;
     if (von === zu) { flash("Bitte zwei verschiedene Kürzel wählen"); return; }
     const a = state.students[von], b = state.students[zu], ka = tauschKz(von), kb = tauschKz(zu);
-    const leer = st => !st.a && !filled(st).n && !st.f;
+    const leer = st => !st.a && !Object.keys(st.p || {}).length && !st.f && !st.n;
     let text;
     if (tauschModus === "tauschen") {
       text = "<b>" + escHtml(ka) + "</b> (" + tauschStand(a) + ") und <b>" + escHtml(kb) + "</b> (" + tauschStand(b) +
@@ -1378,6 +1382,23 @@ function critBlock(st, crit, grp, sec) {
     d.appendChild(btn); d.appendChild(long);
   }
   d.appendChild(tapRow(st, crit, updateCmax));
+  // Freitext zum Kriterium (z. B. "Was ist besonders gelungen?"), je Arbeit in st.n.
+  if (crit.notiz) {
+    const ta = document.createElement("textarea");
+    ta.className = "critnotiz";
+    ta.style.cssText = "font-family:inherit;font-size:16px;min-height:64px;margin-top:8px";
+    ta.placeholder = crit.notiz;
+    ta.setAttribute("aria-label", crit.notiz);
+    ta.value = (st.n && st.n[crit.field]) || "";
+    ta.disabled = !!st.a;
+    ta.addEventListener("input", () => {
+      st.n = st.n || {};
+      if (ta.value) st.n[crit.field] = ta.value; else delete st.n[crit.field];
+      if (!Object.keys(st.n).length) delete st.n;
+      save();
+    });
+    d.appendChild(ta);
+  }
   return d;
 }
 function renderBewerten() {
@@ -2191,7 +2212,7 @@ function exportText() {
     // "ns": hat gefehlt und die gleiche Arbeit nachgeschrieben - zaehlt in
     // Excel zur Notenliste, aber nicht zur Statistik der Erstschrift.
     students: state.students.map(s => Object.assign(
-      { k: s.k, w: s.w, p: s.p, f: s.f, abwesend: !!s.a, ab: abwWert(s), hk: hkStufe(s) },
+      { k: s.k, w: s.w, p: s.p, f: s.f, n: s.n || {}, abwesend: !!s.a, ab: abwWert(s), hk: hkStufe(s) },
       istNachgeschrieben(s) ? { ns: true } : {}))
   };
   // Prozentuales Notenschema (Sek I): die am Handy zuletzt gewählte
@@ -2218,7 +2239,7 @@ function restoreFrom(text) {
       (vorhanden ? "\n\nDie Punkte, die jetzt auf diesem Gerät stehen, werden dabei ersetzt." : ""))) return;
   const neu = freshState(Math.max(d.students.length, CFG.meta.n_students || 0));
   d.students.forEach((s, i) => {
-    neu.students[i] = { k: s.k || neu.students[i].k, p: s.p || {}, w: s.w || {}, f: s.f || "",
+    neu.students[i] = { k: s.k || neu.students[i].k, p: s.p || {}, w: s.w || {}, f: s.f || "", n: s.n || {},
                         a: !!s.abwesend, wa: !!(s.abwesend || s.ns), ab: s.ab || 0, hk: s.hk || 0 };
     if (s.ns) { neu.students[i].ng = true; neu.students[i].nsart = "gleich"; }
   });
