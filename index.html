@@ -322,6 +322,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       <p class="muted" style="margin:6px 0 0">Wirkt sofort auf alle Noten unten — auch rückwirkend, jederzeit umschaltbar.</p>
     </div>
     <h2>Arbeiten im Kurs</h2>
+    <div class="card" id="notenCard" hidden></div>
     <div class="card" id="studentList"></div>
     <p class="muted" style="margin:2px 0 0">Mit <b>fehlt</b> markierst du, wer nicht mitgeschrieben hat: zählt nicht als offen, bleibt in der Excel-Tabelle hellrot und leer.</p>
     <p class="muted" id="missInfo" style="margin:11px 0 0"></p>
@@ -1047,6 +1048,27 @@ function studentRow(i) {
   row.addEventListener("click", () => { idx = i; setView("bewerten"); });
   return row;
 }
+// Notenuebersicht waehrend der Korrektur: nur fertig bewertete Erstschriften
+// (wie Schnitt und Notenspiegel in Excel). Wird mit renderKurs neu gerechnet -
+// also auch sofort nach dem Umschalten der Defizitschwelle.
+function renderNotenCard(erledigt) {
+  const card = document.getElementById("notenCard");
+  const nps = erledigt.map(i => state.students[i])
+    .filter(st => !istNachgeschrieben(st)).map(st => noteFuer(st).np);
+  card.hidden = !nps.length;
+  card.innerHTML = "";
+  if (card.hidden) return;
+  const n = [0, 0, 0, 0, 0, 0];
+  nps.forEach(np => { n[np === 0 ? 5 : (np <= 3 ? 4 : (np <= 6 ? 3 : (np <= 9 ? 2 : (np <= 12 ? 1 : 0))))]++; });
+  const schnitt = nps.reduce((a, np) => a + NOTENWERT[np], 0) / nps.length;
+  const h = document.createElement("h3");
+  h.style.margin = "0 0 4px";
+  h.textContent = "Notenübersicht (fertig korrigiert) · Schnitt " + schnitt.toFixed(2).replace(".", ",");
+  card.appendChild(h);
+  const d = notenDiagramm(n);
+  d.style.paddingLeft = "0";
+  card.appendChild(d);
+}
 function renderKurs() {
   renderSchwelleCard();
   const host = document.getElementById("studentList");
@@ -1073,6 +1095,7 @@ function renderKurs() {
     host.appendChild(h);
     indices.forEach(i => host.appendChild(studentRow(i)));
   };
+  renderNotenCard(erledigt);
   addGroup("Zu korrigieren", offen);
   addGroup("Leistungsüberprüfung verpasst", verpasst);
   addGroup("Erledigt", erledigt);
@@ -1746,6 +1769,7 @@ function notenDiagramm(n, oeffnen) {
     fuss.textContent = summe + " Arbeiten (Erstschrift), Tendenzen zusammengefasst";
     box.appendChild(fuss);
   }
+  if (!oeffnen) return box;
   const b = document.createElement("button");
   b.type = "button"; b.className = "btn quiet"; b.style.marginTop = "6px";
   b.textContent = "Arbeit öffnen";
