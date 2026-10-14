@@ -853,11 +853,21 @@ function grade(p) { let hit = CFG.notenfindung[0]; for (const r of CFG.notenfind
    Amtlich vorgesehene Absenkung bei gehäuften Verstößen gegen die sprachliche
    Richtigkeit: Die Punktzahl bleibt unverändert, nur die Notenpunkte sinken.
    Ob es die Abwertung gibt, welches Kriterium sie freischaltet und wie weit sie
-   reicht, sagt ausschließlich die Config — die App kennt kein Fach. */
+   reicht, sagt ausschließlich die Config — die App kennt kein Fach. Ohne "feld"
+   ist sie bei jeder mitgeschriebenen Arbeit frei wählbar. */
 function abwRegel() { return (CFG && CFG.abwertung) || null; }
+function abwFreigabe(r, p) { return !r.feld || (p || {})[r.feld] === 0; }
 function abwMoeglich(st) {
   const r = abwRegel();
-  return !!(r && st && !st.a && st.p[r.feld] === 0);
+  return !!(r && st && !st.a && abwFreigabe(r, st.p));
+}
+// Beschriftung einer Abwertungsstufe: im prozentualen Schema (Sek I) sind drei
+// Notenpunkte eine ganze Note, ein Notenpunkt eine Tendenz.
+function abwLabel(v) {
+  if (!v) return "keine";
+  if (!istProzentual()) return "−" + v;
+  if (v % 3 === 0) return "−" + (v / 3) + (v === 3 ? " Note" : " Noten");
+  return "−" + v + (v === 1 ? " Tendenz" : " Tendenzen");
 }
 function abwWert(st) {
   const r = abwRegel();
@@ -1453,9 +1463,11 @@ function renderAbwBox() {
   for (let v = 0; v <= r.max_np; v++) {
     const b = document.createElement("button");
     b.className = "tap"; b.type = "button";
-    b.textContent = v ? "−" + v : "keine";
+    // Mit Punkten zeigt jede Taste gleich die Note, die dabei herauskommt.
+    const ziel = (v && filled(st).n) ? " → " + notenKurz(Math.max(0, grade(total(st)).np - v)) : "";
+    b.textContent = abwLabel(v) + ziel;
     b.setAttribute("aria-pressed", String(abwWert(st) === v));
-    b.setAttribute("aria-label", v ? "Abwertung um " + v + " Notenpunkte" : "keine Abwertung");
+    b.setAttribute("aria-label", v ? "Abwertung um " + abwLabel(v).slice(1) + ziel : "keine Abwertung");
     b.addEventListener("click", () => {
       if (v) st.ab = v; else delete st.ab;
       save(); renderHead(); renderGradeBox(); renderAbwBox();
@@ -1480,7 +1492,8 @@ function renderGradeBox() {
   val.textContent = istProzentual() ? g.kurz : (g.kurz + " (" + g.np + " Punkte)");
   sub.textContent = fmtP(pts) + " von " + CFG.meta.combination_max + " Punkten · " +
                     (pr.n === pr.of ? "vollständig" : pr.n + " von " + pr.of + " Kriterien") +
-                    (g.ab ? " · abgewertet um " + g.ab + " (statt " + g.npRoh + ")" : "") +
+                    (g.ab ? " · abgewertet um " + (istProzentual() ? abwLabel(g.ab).slice(1) + " (statt " + notenKurz(g.npRoh) + ")"
+                                                   : g.ab + " (statt " + g.npRoh + ")") : "") +
                     (hkStufe(st) ? " · " + hkRegel().stufen[hkStufe(st) - 1].label + ": " +
                             hkRegel().nach_gruppe.split(" – ")[0] + " höchstens " +
                             fmtP(hkRegel().stufen[hkStufe(st) - 1].max) + " Punkte" : "");
@@ -1678,7 +1691,7 @@ function notenpunkteAus(cfg, data) {
     let np = tabelle[0][1];
     tabelle.forEach(r => { if (gesamt >= r[0]) np = r[1]; });
     const abw = cfg.abwertung;
-    if (abw && p[abw.feld] === 0 && st.ab) np = Math.max(0, np - Math.min(abw.max_np, st.ab));
+    if (abw && abwFreigabe(abw, p) && st.ab) np = Math.max(0, np - Math.min(abw.max_np, st.ab));
     werte.push(np);
   });
   return werte;
