@@ -471,7 +471,7 @@ function save() {
 async function loadCatalog(force) {
   letzterKatalogAbruf = Date.now();
   const cached = lsGet(K_CATALOG);
-  if (cached && !force) { catalog = cached; renderExamList(); }
+  if (cached && !force) { catalog = cached; nsArtAngleichen(); renderExamList(); }
   try {
     // Zeitstempel gegen zwischengespeicherte Auslieferung: ohne ihn kann der
     // Webserver den Katalog noch minutenlang im alten Stand herausgeben.
@@ -480,6 +480,7 @@ async function loadCatalog(force) {
     const data = await res.json();
     catalog = data.klausuren || [];
     lsSet(K_CATALOG, catalog);
+    nsArtAngleichen();
     renderExamList();
   } catch (e) {
     if (!cached) {
@@ -562,7 +563,8 @@ function activate(cfg, openIdx) {
   const umbenannt = CFG.meta.kuerzel_umbenannt || {};
   state.students.forEach(s => { if (s.k && umbenannt[s.k]) s.k = umbenannt[s.k]; });
   state.students.forEach(s => { s.w = Object.assign({}, DEFAULT_WAHL, s.w || {}); s.p = s.p || {}; s.a = !!s.a; s.wa = !!(s.wa || s.a); abwVermerkBereinigen(s); abwPruefen(s); });
-  kursliste = lsGet(K_KURS(CFG.meta.kurs)) || [];
+  nsArtAngleichen();
+  kursliste =lsGet(K_KURS(CFG.meta.kurs)) || [];
   if (istProzentual()) {
     if (typeof state.schwelle !== "number") state.schwelle = CFG.meta.defizitschwelle || 0.5;
     CFG.notenfindung = computeNotenfindung(CFG.meta.combination_max, state.schwelle);
@@ -1925,6 +1927,30 @@ function artWort(e) {
 // Kuerzelliste im Katalog: alle Nachschriften zu dieser Klausur).
 function nsKlausurFuer(orig, k) {
   return nachschriftKlausuren(orig.id).find(x => !Array.isArray(x.kuerzel) || x.kuerzel.indexOf(k) >= 0);
+}
+// Gibt es fuer ein Kuerzel eine eigene Nachschrift-Klausur (meta.nachschrift_von
+// mit diesem Kuerzel), kann es nicht die gleiche Arbeit nachgeschrieben haben:
+// "gleiche Arbeit" automatisch auf "andere Arbeit" umstellen - wie ein Tipp auf
+// den Knopf. Arbeiten, in denen schon Punkte stehen, bleiben unangetastet.
+function nsArtAngleichen() {
+  catalog.forEach(e => {
+    if (e.nachschrift_von) return;
+    const ns = nachschriftKlausuren(e.id).filter(x => Array.isArray(x.kuerzel));
+    if (!ns.length) return;
+    const offen = CFG && state && CFG.meta.storage_id === e.id;
+    const data = offen ? state : lsGet(K_DATA(e.id));
+    if (!data || !data.students) return;
+    let geaendert = false;
+    data.students.forEach(st => {
+      if (!st.k || !ns.some(x => x.kuerzel.indexOf(st.k) >= 0)) return;
+      if (st.nsart === "anders" || !(st.nsart === "gleich" || st.ng)) return;
+      if (Object.keys(st.p || {}).some(f => typeof st.p[f] === "number")) return;
+      st.nsart = "anders"; st.a = true; st.wa = true;
+      geaendert = true;
+    });
+    if (!geaendert) return;
+    if (offen) save(); else lsSet(K_DATA(e.id), data);
+  });
 }
 // "andere Arbeit" gewaehlt, die veraenderte Arbeit gibt es aber noch nicht.
 function nsFehlendeArbeiten() {
