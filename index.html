@@ -401,7 +401,11 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
         <button class="btn" id="copyBtn">Block kopieren</button>
         <button class="btn" id="showBtn">Anzeigen</button>
       </div>
+      <div class="row" id="nhRow" style="margin-bottom:11px" hidden>
+        <button class="btn" id="nhBtn">An Notenheft senden</button>
+      </div>
       <p class="muted" style="margin:0">„An PC senden" öffnet das Teilen-Menü — dort OneDrive wählen und im Ordner <b>Klausurdaten</b> ablegen. Die Datei liegt dann von selbst auf dem PC.</p>
+      <p class="muted" style="margin:9px 0 0" id="nhHint" hidden>„An Notenheft senden" kopiert die Noten der fertig bewerteten Arbeiten (nur Kürzel, Note, Fokus) verschlüsselt. Im Notenheft dann unter Arbeiten/Klausuren „Ergebnis einfügen".</p>
       <pre id="exportBox" hidden></pre>
     </div>
     <h2>Stand wiederherstellen</h2>
@@ -434,6 +438,9 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 <script>
 "use strict";
 const CATALOG_URL = "klausuren/index.json";
+// Öffentlicher Schlüssel des Notenhefts (aus dem Verbindungscode) - damit
+// lässt sich nur verschlüsseln, lesen kann nur das Notenheft. null = aus.
+const NOTENHEFT = {"x": "vWEpIsv0HsA1w69e9w_IND0h8qOm-Ab0xgkdxsalKIs", "y": "yYaaiNyUJ5TI54I4OiIP2FYeh5ERR0GF5G-9ZqZbot0"};
 const K_CATALOG = "ewh:app:catalog";
 const K_SEEN = "ewh:app:seen_ids";
 const K_FARBEN = "ewh:app:kursfarben";
@@ -2307,6 +2314,66 @@ function restoreFrom(text) {
   flash("Sicherung eingespielt");
 }
 // Dateiname mit Zeitstempel: ein zweiter Versand überschreibt nie den ersten.
+/* ---------------- An Notenheft senden ----------------
+   Gleiches Format und Verfahren wie skripte/notenheft_senden.py: je Kind nur
+   Kürzel, Note und Fokusschwerpunkt, verschlüsselt (ECDH P-256 + HKDF +
+   AES-GCM). Nur vollständig bewertete Arbeiten; „fehlt" = nicht mitgeschrieben. */
+function notenheftDaten() {
+  const ergebnisse = [];
+  let offen = 0;
+  state.students.forEach(st => {
+    if (!st.k) return;
+    if (st.a) { ergebnisse.push({ k: st.k, note: null }); return; }
+    const pr = filled(st);
+    if (!pr.of || pr.n < pr.of) { if (pr.n) offen++; return; }
+    const e = { k: st.k, note: noteFuer(st).kurz };
+    if (st.f && String(st.f).trim()) e.fokus = String(st.f).trim().slice(0, 300);
+    ergebnisse.push(e);
+  });
+  const orig = CFG.meta.nachschrift_von || null;
+  const oe = orig ? catalog.filter(e => e.id === orig)[0] : null;
+  const datumText = (oe && oe.datum) || CFG.meta.datum || "";
+  const m = String(datumText).match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  const pad = n => String(n).padStart(2, "0");
+  const datum = m ? m[3] + "-" + pad(m[2]) + "-" + pad(m[1]) : new Date().toISOString().slice(0, 10);
+  return { offen, daten: {
+    format: "km-ergebnis", v: 1, id: orig || CFG.meta.storage_id, quelle: CFG.meta.storage_id,
+    titel: String((oe && oe.titel) || CFG.meta.exam_title || CFG.meta.oberthema || CFG.meta.storage_id).slice(0, 60),
+    kurs: CFG.meta.kurs || "", fach: CFG.meta.fach || "", datum, nachschrift: !!orig, stand: Date.now(), ergebnisse } };
+}
+async function notenheftVerschluesseln(daten) {
+  const sub = crypto.subtle, ALG = { name: "ECDH", namedCurve: "P-256" };
+  const b64 = u => btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(u))));
+  const empf = await sub.importKey("jwk", { kty: "EC", crv: "P-256", x: NOTENHEFT.x, y: NOTENHEFT.y }, ALG, false, []);
+  const einmal = await sub.generateKey(ALG, true, ["deriveBits"]);
+  const geheim = await sub.deriveBits({ name: "ECDH", public: empf }, einmal.privateKey, 256);
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const hk = await sub.importKey("raw", geheim, "HKDF", false, ["deriveKey"]);
+  const key = await sub.deriveKey({ name: "HKDF", hash: "SHA-256", salt, info: new TextEncoder().encode("notenheft-klausurmanager-v1") },
+    hk, { name: "AES-GCM", length: 256 }, false, ["encrypt"]);
+  const ct = await sub.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify(daten)));
+  const epk = await sub.exportKey("jwk", einmal.publicKey);
+  return { format: "notenheft-km", v: 1, epk: { kty: "EC", crv: "P-256", x: epk.x, y: epk.y }, salt: b64(salt), iv: b64(iv), ct: b64(ct) };
+}
+async function anNotenheft() {
+  if (!NOTENHEFT || !CFG || !state) return;
+  const r = notenheftDaten();
+  const n = r.daten.ergebnisse.filter(e => e.note).length;
+  if (!r.daten.ergebnisse.length) { alert("Noch keine fertig bewertete Arbeit – nichts zu senden."); return; }
+  if (!confirm(n + " Note(n) verschlüsselt fürs Notenheft kopieren?" + (r.offen ? " " + r.offen + " Arbeit(en) sind noch nicht vollständig bewertet und werden ausgelassen." : ""))) return;
+  let txt;
+  try { txt = JSON.stringify(await notenheftVerschluesseln(r.daten)); }
+  catch (e) { alert("Verschlüsseln hat nicht geklappt: " + (e && e.message || e)); return; }
+  try { await navigator.clipboard.writeText(txt); flash("Kopiert – im Notenheft „Ergebnis einfügen“"); return; }
+  catch (e) { /* weiter mit Datei */ }
+  const name = CFG.meta.storage_id + "_Notenheft.json";
+  const datei = new File([txt], name, { type: "application/json" });
+  if (navigator.canShare && navigator.canShare({ files: [datei] })) {
+    try { await navigator.share({ files: [datei], title: name }); return; } catch (e) { if (e && e.name === "AbortError") return; }
+  }
+  const box = document.getElementById("exportBox"); box.textContent = txt; box.hidden = false;
+  flash("Bitte den Text von Hand kopieren");
+}
 function exportFilename() {
   const d = new Date(), p = n => String(n).padStart(2, "0");
   return "EWH-Daten_" + CFG.meta.storage_id + "_"
@@ -2438,6 +2505,11 @@ function herunterziehenEinrichten() {
     }
     save(); renderDoneBox(); renderExamList();
   };
+  if (NOTENHEFT) {
+    document.getElementById("nhRow").hidden = false;
+    document.getElementById("nhHint").hidden = false;
+    document.getElementById("nhBtn").onclick = anNotenheft;
+  }
   document.getElementById("showBtn").onclick = () => {
     const box = document.getElementById("exportBox");
     box.textContent = exportText(); box.hidden = !box.hidden;
