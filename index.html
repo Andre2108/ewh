@@ -221,6 +221,8 @@ html.ptrAktiv{overscroll-behavior-y:contain}
 .abgPfeil{font-size:10px;width:9px;color:var(--soft)}
 /* Was kam in der Arbeit vor? (meta.inhalte bzw. Katalogeintrag "inhalte") */
 .abgInhalt{font-size:12px;line-height:1.45;color:var(--soft);margin:-4px 0 8px 41px}
+.abgNs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--soft);margin:-4px 0 8px 41px}
+.abgNs .btn{padding:3px 10px;font-size:12px;border-radius:7px}
 .abgDiagramm{padding:4px 2px 10px 21px}
 .balkenZeile{display:flex;align-items:center;gap:8px;margin:3px 0;font-family:var(--mono);font-size:12px}
 .bNote{width:12px;font-weight:700;text-align:right}
@@ -1837,6 +1839,21 @@ function renderAbgeschlossen() {
         const inhalte = inhalteVon(e);
         const inhaltEl = inhalte.length ? document.createElement("div") : null;
         if (inhaltEl) { inhaltEl.className = "abgInhalt"; inhaltEl.textContent = inhalte.join(" · "); }
+        // Fertig korrigierte eigene Nachschriften stehen direkt unter ihrer
+        // Originalarbeit (Kuerzel + Oeffnen) - offene bleiben im Bereich
+        // "Nachschriften".
+        const nsZeilen = nachschriftKlausuren(e.id).filter(istFertig).map(ns => {
+          const z = document.createElement("div");
+          z.className = "abgNs";
+          const t = document.createElement("span");
+          const kz = Array.isArray(ns.kuerzel) && ns.kuerzel.length ? ns.kuerzel.join(", ") : ns.titel;
+          t.textContent = "Nachschrift " + kz + (ns.fertig_am ? " · fertig " + ns.fertig_am : "");
+          const b = document.createElement("button");
+          b.type = "button"; b.className = "btn quiet"; b.textContent = "Öffnen";
+          b.onclick = ev => { ev.stopPropagation(); loadExam(ns); };
+          z.appendChild(t); z.appendChild(b);
+          return z;
+        });
         if (istAbgeschlossen(e)) {
           const cfgE = lsGet(K_CFG(e.id)), dataE = examData(e);
           const wert = schnittAus(cfgE, dataE);
@@ -1852,12 +1869,14 @@ function renderAbgeschlossen() {
           };
           host.appendChild(row);
           if (inhaltEl) host.appendChild(inhaltEl);
+          nsZeilen.forEach(z => host.appendChild(z));
           host.appendChild(diagramm);
         } else {
           sch.textContent = "läuft"; sch.classList.add("laeuft");
           row.onclick = () => loadExam(e);
           host.appendChild(row);
           if (inhaltEl) host.appendChild(inhaltEl);
+          nsZeilen.forEach(z => host.appendChild(z));
         }
       });
   });
