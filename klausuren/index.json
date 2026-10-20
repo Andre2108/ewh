@@ -111,7 +111,11 @@
    "kuerzel": [
     "LE"
    ],
-   "art": "Arbeit"
+   "art": "Arbeit",
+   "status": "fertig",
+   "fertig_am": "20.10.2026",
+   "bewertet": 1,
+   "fehlend": 0
   }
  ]
 }
