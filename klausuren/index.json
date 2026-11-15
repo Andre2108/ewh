@@ -12,7 +12,11 @@
     "Einordnung in Roman und historischen Kontext",
     "Beurteilung: Heimat im Exil (Fetscher-Zitat)"
    ],
-   "oberthema": "Heimsuchung – Der Tuchfabrikant"
+   "oberthema": "Heimsuchung – Der Tuchfabrikant",
+   "status": "fertig",
+   "fertig_am": "21.10.2026",
+   "bewertet": 22,
+   "fehlend": 1
   },
   {
    "id": "ewh-heimsuchung-frau-des-architekten-nachschrift-d-gk-q2",
@@ -116,6 +120,21 @@
    "fertig_am": "20.10.2026",
    "bewertet": 1,
    "fehlend": 0
+  },
+  {
+   "id": "ewh-sympathy-e-lk-q1",
+   "titel": "Sympathy – Klausur Nr. 2",
+   "kurs": "E LK Q1",
+   "datum": "01.12.2026",
+   "fach": "Englisch",
+   "file": "klausuren/ewh-sympathy-e-lk-q1.json",
+   "oberthema": "Paul Laurence Dunbar, „Sympathy“ – The African American Experience",
+   "inhalte": [
+    "Comprehension: Gedicht zusammenfassen",
+    "Analysis: imagery, structure, stylistic devices (Lyrikbegriffe)",
+    "Comment: African Americans then and now (Unterrichtsbezug)"
+   ],
+   "art": "Klausur"
   }
  ]
 }

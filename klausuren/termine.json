@@ -1,0 +1,66 @@
+{
+ "hinweis": "automatisch aus dem Notenheft (klausurtermine.py) – nur Datum, Kurs, Art",
+ "termine": [
+  {
+   "id": "imp-p-28810189",
+   "datum": "05.10.2026",
+   "art": "Klausur",
+   "kurs": "D GK Q2",
+   "fach": "Deutsch",
+   "schluessel": "q2|deutsch|gk",
+   "klausur": "ewh-heimsuchung-tuchfabrikant-d-gk-q2"
+  },
+  {
+   "id": "imp-p-95d72ee0",
+   "datum": "06.10.2026",
+   "art": "Klassenarbeit",
+   "kurs": "E-6c",
+   "fach": "Englisch",
+   "schluessel": "6c|englisch|",
+   "klausur": "ewh-its-my-party-6c"
+  },
+  {
+   "id": "imp-p-a6afa16f",
+   "datum": "12.10.2026",
+   "art": "Klassenarbeit",
+   "kurs": "E-5d",
+   "fach": "Englisch",
+   "schluessel": "5d|englisch|",
+   "klausur": "ewh-welcome-to-greenwich-5d"
+  },
+  {
+   "id": "imp-p-112b1b63",
+   "datum": "13.10.2026",
+   "art": "Klassenarbeit",
+   "kurs": "D-6c",
+   "fach": "Deutsch",
+   "schluessel": "6c|deutsch|",
+   "klausur": "ewh-westbuehl-6c"
+  },
+  {
+   "id": "2e68d5f9d10c90005e928ba3",
+   "datum": "30.11.2026",
+   "art": "Klassenarbeit",
+   "kurs": "E-5d",
+   "fach": "Englisch",
+   "schluessel": "5d|englisch|"
+  },
+  {
+   "id": "e0d21842fe759e141d387375",
+   "datum": "01.12.2026",
+   "art": "Klausur",
+   "kurs": "E LK Q1",
+   "fach": "Englisch",
+   "schluessel": "q1|englisch|lk",
+   "klausur": "ewh-sympathy-e-lk-q1"
+  },
+  {
+   "id": "f2ea877033ad2f582e39e6fb",
+   "datum": "04.12.2026",
+   "art": "Klausur",
+   "kurs": "D GK Q2",
+   "fach": "Deutsch",
+   "schluessel": "q2|deutsch|gk"
+  }
+ ]
+}
