@@ -69,6 +69,14 @@
    "kurs": "D GK Q2",
    "fach": "Deutsch",
    "schluessel": "q2|deutsch|gk"
+  },
+  {
+   "id": "c100c3e8fac38936ea6900c5",
+   "datum": "08.12.2026",
+   "art": "Klassenarbeit",
+   "kurs": "D-6c",
+   "fach": "Deutsch",
+   "schluessel": "6c|deutsch|"
   }
  ]
 }
