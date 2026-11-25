@@ -98,6 +98,21 @@ h3{font-size:15px;margin:20px 0 10px;font-weight:620}
 .hkbew li{margin-bottom:4px}
 .srow{display:flex;align-items:center;gap:11px;padding:12px 0;border-top:1px solid var(--line);cursor:pointer}
 .srow:first-child{border-top:0}
+/* Bald anstehend: Prüfungstermine aus dem Notenheft */
+.baldRow{display:flex;align-items:center;gap:11px;padding:10px 0;border-top:1px solid var(--line)}
+.baldRow:first-child{border-top:0;padding-top:2px}
+.baldRow.link{cursor:pointer}
+.baldTag{flex:none;width:88px;font-family:var(--mono);font-size:12px;line-height:1.35;white-space:nowrap}
+.baldTag b{display:block;font-size:13px;color:var(--ink)}
+.baldTag span{color:var(--soft)}
+.baldTag span.nah{color:var(--warn);font-weight:620}
+.baldMitte{flex:1;min-width:0;font-size:15px;line-height:1.35}
+.baldMitte small{display:block;color:var(--soft);font-size:12px}
+.baldPunkt{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.baldStatus{flex:none;font-family:var(--mono);font-size:11px;font-weight:620;padding:3px 9px;border-radius:999px;
+  background:#eef1f4;color:var(--soft)}
+.baldStatus.ok{background:#ecf5e1;color:var(--ok)}
+.baldStatus.warn{background:#fdf0e1;color:var(--warn)}
 .sidx{font-family:var(--mono);font-size:12px;color:var(--soft);min-width:22px}
 .sname{flex:1;font-size:15px;min-width:0}
 .sname small{display:block;font-family:var(--mono);font-size:11px;color:var(--soft);margin-top:1px}
@@ -294,6 +309,10 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   <div class="alert" id="storageAlert" hidden></div>
 
   <section id="viewKlausuren">
+    <div id="baldWrap" hidden>
+      <h2>Bald anstehend</h2>
+      <div class="card" id="baldList"></div>
+    </div>
     <h2>Verfügbare Klausuren und Klassenarbeiten</h2>
     <div class="card" id="examList"><p class="muted" style="margin:0">Lade Klausuren…</p></div>
     <div id="nsWrap" hidden>
@@ -491,6 +510,7 @@ async function loadCatalog(force) {
     lsSet(K_CATALOG, catalog);
     nsArtAngleichen();
     renderExamList();
+    loadTermine();
   } catch (e) {
     if (!cached) {
       document.getElementById("examList").innerHTML =
@@ -1921,8 +1941,115 @@ function renderExamList() {
 
   renderNsBereich();
   renderAbgeschlossen();
+  renderBald();
   lsSet(K_SEEN, catalog.map(e => e.id));
   refreshNachschriftenBadge();
+}
+/* ---------------- Bald anstehend (Termine aus dem Notenheft) ----------------
+   klausuren/termine.json schreibt der PC stündlich (klausurtermine.py): nur
+   Datum, Kurs und Art der schriftlichen Arbeiten, schon mit der passenden
+   Klausur verknüpft. Ist eine Klausur neu und der PC hat noch nicht
+   abgeglichen (z. B. aus einer Cloud-Sitzung), verknüpft die App selbst -
+   nach derselben Regel: gleiche Lerngruppe und gleiches Fach, Datum
+   höchstens 28 Tage auseinander, der nächste zuerst. */
+const K_TERMINE = "ewh:app:termine";
+let termine = lsGet(K_TERMINE) || [];
+async function loadTermine() {
+  try {
+    const res = await fetch("klausuren/termine.json?t=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) return;
+    termine = (await res.json()).termine || [];
+    lsSet(K_TERMINE, termine);
+    renderBald();
+  } catch (e) { /* offline: gespeicherte Termine bleiben */ }
+}
+// Gleiche Regel wie kurs_schluessel() in klausurtermine.py
+function kursSchluessel(kurs, fach) {
+  kurs = kurs || ""; fach = fach || "";
+  const teile = kurs.split(/\s[–—·-]\s/);
+  if (!fach && teile.length > 1) fach = teile[1].trim().split(" ")[0];
+  const toks = kurs.toLowerCase().replace(/\([^)]*\)/g, " ").split(/[^a-z0-9äöüß]+/).filter(Boolean);
+  let stufe = "";
+  for (const t of toks) {
+    const m = t.match(/^0*(\d{1,2}[a-z]?)$/);
+    if (["ef", "q1", "q2"].indexOf(t) >= 0 || (m && +m[1].match(/\d+/)[0] >= 5 && +m[1].match(/\d+/)[0] <= 13)) {
+      stufe = m ? m[1] : t; break;
+    }
+  }
+  const art = toks.find(t => t === "lk" || t === "gk") || "";
+  return [stufe, fach.trim().toLowerCase(), art].join("|");
+}
+function datumAus(s) {
+  let m = String(s || "").match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  return m ? new Date(+m[3], +m[2] - 1, +m[1]) : null;
+}
+function termineVerknuepft() {
+  const kat = catalog.filter(e => !e.nachschrift_von && !/^ewh-notentest-/.test(e.id));
+  const ids = new Set(kat.map(e => e.id));
+  const vergeben = new Map();
+  termine.forEach(t => { if (t.klausur && ids.has(t.klausur)) vergeben.set(t.id, t.klausur); });
+  kat.forEach(e => { if (e.termin) vergeben.set(e.termin, e.id); });
+  const belegt = () => new Set(vergeben.values());
+  const paare = [];
+  termine.forEach(t => {
+    if (vergeben.has(t.id) || !t.schluessel || !t.schluessel.split("|")[0]) return;
+    const dt = datumAus(t.datum);
+    kat.forEach(e => {
+      const de = datumAus(e.datum);
+      if (!de || !dt || belegt().has(e.id) || kursSchluessel(e.kurs, e.fach) !== t.schluessel) return;
+      const ab = Math.abs(Math.round((de - dt) / 864e5));
+      if (ab <= 28) paare.push([ab, t.id, e.id]);
+    });
+  });
+  paare.sort((a, b) => a[0] - b[0]).forEach(([ab, tid, sid]) => {
+    if (!vergeben.has(tid) && !belegt().has(sid)) vergeben.set(tid, sid);
+  });
+  return termine.map(t => Object.assign({}, t, { eintrag: kat.find(e => e.id === vergeben.get(t.id)) || null }));
+}
+function renderBald() {
+  const wrap = document.getElementById("baldWrap"), host = document.getElementById("baldList");
+  if (!wrap) return;
+  const heute = new Date(); heute.setHours(0, 0, 0, 0);
+  const WT = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+  // Kommende Arbeiten; geschriebene nur, solange der Erwartungshorizont fehlt (3 Wochen)
+  const liste = termineVerknuepft().map(t => Object.assign(t, { d: datumAus(t.datum) }))
+    .filter(t => t.d && (t.d >= heute || (!t.eintrag && (heute - t.d) / 864e5 <= 21)))
+    .sort((a, b) => a.d - b.d);
+  wrap.hidden = !liste.length;
+  host.innerHTML = "";
+  liste.forEach(t => {
+    const tage = Math.round((t.d - heute) / 864e5);
+    const row = document.createElement("div");
+    row.className = "baldRow";
+    const wann = tage < 0 ? "geschrieben" : tage === 0 ? "heute" : tage === 1 ? "morgen" : "in " + tage + " Tagen";
+    const tag = document.createElement("div");
+    tag.className = "baldTag";
+    tag.innerHTML = "<b></b><span></span>";
+    tag.querySelector("b").textContent = WT[t.d.getDay()] + " " + t.datum.slice(0, 6);
+    const sp = tag.querySelector("span");
+    sp.textContent = wann;
+    if (tage >= 0 && tage <= 7) sp.className = "nah";
+    const mitte = document.createElement("div");
+    mitte.className = "baldMitte";
+    const punkt = document.createElement("span");
+    punkt.className = "baldPunkt"; punkt.style.background = kursFarbe(t.kurs);
+    mitte.appendChild(punkt);
+    mitte.appendChild(document.createTextNode((FLAGGE_JE_FACH[t.fach] ? FLAGGE_JE_FACH[t.fach] + " " : "") + t.kurs));
+    const klein = document.createElement("small");
+    klein.textContent = t.art + (t.eintrag ? " · " + (t.eintrag.oberthema || t.eintrag.titel) : "");
+    mitte.appendChild(klein);
+    const st = document.createElement("span");
+    if (t.eintrag) {
+      st.className = "baldStatus ok"; st.textContent = "EWH bereit ›";
+      row.classList.add("link");
+      row.onclick = () => loadExam(t.eintrag);
+    } else {
+      st.className = "baldStatus" + (tage <= 7 ? " warn" : "");
+      st.textContent = "EWH fehlt";
+    }
+    row.append(tag, mitte, st);
+    host.appendChild(row);
+  });
 }
 // Bereich "Nachschriften" der Uebersicht: nur, was dort noch zu korrigieren
 // ist - eigene Nachschrift-Klausuren und einzelne freigeschaltete Arbeiten,
