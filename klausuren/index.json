@@ -152,6 +152,23 @@
     "Writing: Our stall at the Christmas fair"
    ],
    "art": "Arbeit"
+  },
+  {
+   "id": "ewh-sherlock-in-room-5d-5d",
+   "titel": "Sherlock in Room 5d (Class test no. 2)",
+   "kurs": "E-5d",
+   "datum": "30.11.2026",
+   "fach": "Englisch",
+   "file": "klausuren/ewh-sherlock-in-room-5d-5d.json",
+   "oberthema": "Sherlock in Room 5d",
+   "inhalte": [
+    "Grammar: there is/are, questions and short answers",
+    "Prepositions",
+    "Personal pronouns",
+    "Rules: can/can't, imperatives",
+    "Writing: Sherlock in my room"
+   ],
+   "art": "Arbeit"
   }
  ]
 }
