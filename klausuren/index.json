@@ -169,6 +169,22 @@
     "Writing: Sherlock in my room"
    ],
    "art": "Arbeit"
+  },
+  {
+   "id": "ewh-recht-auf-heimat-d-gk-q2",
+   "titel": "Heimat – Menschenrecht oder Privileg?",
+   "kurs": "D GK Q2",
+   "datum": "04.12.2026",
+   "fach": "Deutsch",
+   "file": "klausuren/ewh-recht-auf-heimat-d-gk-q2.json",
+   "oberthema": "Heimat – Menschenrecht oder Privileg? (Heimsuchung)",
+   "inhalte": [
+    "Aufgabenart IV b: materialgestütztes Verfassen eines argumentierenden Beitrags",
+    "Leitfrage: Recht auf Heimat für jeden Menschen?",
+    "Materialien: Leimgruber-Interview, AEMR, Wiss. Dienste Bundestag, bpb, Integrationsbarometer",
+    "Einbezug von Erpenbecks „Heimsuchung“"
+   ],
+   "art": "Klausur"
   }
  ]
 }
