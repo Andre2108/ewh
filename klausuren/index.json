@@ -126,22 +126,6 @@
    "fehlend": 0
   },
   {
-   "id": "ewh-sympathy-e-lk-q1",
-   "titel": "Sympathy – Klausur Nr. 2",
-   "kurs": "E LK Q1",
-   "datum": "01.12.2026",
-   "fach": "Englisch",
-   "file": "klausuren/ewh-sympathy-e-lk-q1.json",
-   "oberthema": "Paul Laurence Dunbar, „Sympathy“ – The African American Experience",
-   "inhalte": [
-    "Comprehension: Gedicht zusammenfassen",
-    "Analysis: imagery, structure, stylistic devices (Lyrikbegriffe)",
-    "Comment: WSJ zu Obamas Wahl – Rassismus kein Hindernis mehr? (Sklaverei bis heute)",
-    "Mediation: E-Mail – Umbenennung der Berliner Mohrenstraße nach Anton Wilhelm Amo"
-   ],
-   "art": "Klausur"
-  },
-  {
    "id": "ewh-christmas-fair-6c",
    "titel": "A Christmas Fair for Charity (Written class test no. 2)",
    "kurs": "E-6c",
@@ -187,6 +171,22 @@
     "Leitfrage: Recht auf Heimat für jeden Menschen?",
     "Materialien: Leimgruber-Interview, AEMR, Wiss. Dienste Bundestag, bpb, Integrationsbarometer",
     "Einbezug von Erpenbecks „Heimsuchung“"
+   ],
+   "art": "Klausur"
+  },
+  {
+   "id": "ewh-sympathy-e-lk-q1",
+   "titel": "Sympathy – Klausur Nr. 2",
+   "kurs": "E LK Q1",
+   "datum": "01.12.2026",
+   "fach": "Englisch",
+   "file": "klausuren/ewh-sympathy-e-lk-q1.json",
+   "oberthema": "Paul Laurence Dunbar, „Sympathy“ – The African American Experience",
+   "inhalte": [
+    "Comprehension: Gedicht zusammenfassen",
+    "Analysis: imagery, structure, stylistic devices (Lyrikbegriffe)",
+    "Comment: WSJ zu Obamas Wahl – Rassismus kein Hindernis mehr? (Sklaverei bis heute)",
+    "Mediation: E-Mail – Umbenennung der Berliner Mohrenstraße nach Anton Wilhelm Amo"
    ],
    "art": "Klausur"
   }
